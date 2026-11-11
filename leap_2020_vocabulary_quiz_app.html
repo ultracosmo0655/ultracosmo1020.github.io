@@ -1,0 +1,3071 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEAP 英単語 暗記＆クイズ App (2020年初版対応)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Inter & Noto Sans JP) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        leap: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            800: '#1e3a8a',
+                            900: '#0f172a',
+                            accent: '#f59e0b',
+                            success: '#10b981',
+                            danger: '#ef4444'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* Smooth transitions for card flip */
+        .flip-card-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-full flex flex-col antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-800/90 border-b border-slate-700/80 sticky top-0 z-40 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('dashboard')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+                    L
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        LEAP <span class="text-xs px-2.5 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded-full font-semibold">2020年初版準拠 (全1937語)</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">竹岡広信 著 / 数研出版</p>
+                </div>
+            </div>
+
+            <!-- Global Navigation Tabs -->
+            <nav class="flex items-center gap-1 sm:gap-2">
+                <button onclick="switchTab('quiz-setup')" id="nav-quiz-setup" class="px-3 py-2 text-sm font-medium rounded-xl text-white bg-blue-600 transition flex items-center gap-1.5 shadow-md shadow-blue-600/30">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span class="hidden sm:inline">クイズ学習</span>
+                </button>
+                <button onclick="switchTab('word-list')" id="nav-word-list" class="px-3 py-2 text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/60 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span class="hidden sm:inline">単語帳一覧</span>
+                </button>
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-3 py-2 text-sm font-medium rounded-xl text-slate-300 hover:text-white hover:bg-slate-700/60 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span class="hidden sm:inline">進捗ダッシュボード</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+
+        <!-- 1. QUIZ SETUP TAB -->
+        <section id="tab-quiz-setup" class="space-y-6 max-w-3xl mx-auto">
+            <div class="bg-slate-800/90 rounded-2xl border border-slate-700 p-6 sm:p-8 shadow-xl backdrop-blur-md">
+                <div class="border-b border-slate-700/80 pb-4 mb-6">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-blue-400"></i> クイズ＆暗記 出題設定
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">LEAP 2020年版の全1935語から自由に出題範囲・学習形式を設定できます。</p>
+                </div>
+
+                <form id="quiz-setup-form" onsubmit="startQuiz(event)" class="space-y-6">
+                    <!-- 1. Quiz Mode Selection -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">1. 学習・出題形式を選択</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <label class="relative flex flex-col p-3.5 border-2 border-slate-700 rounded-xl cursor-pointer hover:border-blue-500 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-600/15">
+                                <input type="radio" name="quizMode" value="ja-to-en" checked class="sr-only">
+                                <span class="font-bold text-white text-xs sm:text-sm mb-1"><i class="fa-solid fa-language text-blue-400 mr-1"></i>日 → 英 (4択)</span>
+                                <span class="text-[11px] text-slate-400 leading-tight">日本語を見て4択から英語を選択</span>
+                            </label>
+                            <label class="relative flex flex-col p-3.5 border-2 border-slate-700 rounded-xl cursor-pointer hover:border-blue-500 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-600/15">
+                                <input type="radio" name="quizMode" value="en-to-ja" class="sr-only">
+                                <span class="font-bold text-white text-xs sm:text-sm mb-1"><i class="fa-solid fa-font text-indigo-400 mr-1"></i>英 → 日 (4択)</span>
+                                <span class="text-[11px] text-slate-400 leading-tight">英単語を見て4択から日本語を選択</span>
+                            </label>
+                            <label class="relative flex flex-col p-3.5 border-2 border-slate-700 rounded-xl cursor-pointer hover:border-blue-500 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-600/15">
+                                <input type="radio" name="quizMode" value="typing" class="sr-only">
+                                <span class="font-bold text-white text-xs sm:text-sm mb-1"><i class="fa-solid fa-keyboard text-emerald-400 mr-1"></i>スペル入力</span>
+                                <span class="text-[11px] text-slate-400 leading-tight">日本語を見て正確にタイピング入力</span>
+                            </label>
+                            <label class="relative flex flex-col p-3.5 border-2 border-slate-700 rounded-xl cursor-pointer hover:border-blue-500 transition has-[:checked]:border-blue-500 has-[:checked]:bg-blue-600/15">
+                                <input type="radio" name="quizMode" value="flashcard" class="sr-only">
+                                <span class="font-bold text-white text-xs sm:text-sm mb-1"><i class="fa-solid fa-clone text-amber-400 mr-1"></i>カードめくり</span>
+                                <span class="text-[11px] text-slate-400 leading-tight">カードを表裏めくって音声暗記</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 2. Range Selector -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-sm font-bold text-slate-300">2. 出題範囲 (単語番号 1～1935)</label>
+                            <span class="text-xs font-bold text-blue-400 bg-blue-950 px-2.5 py-1 rounded-lg border border-blue-800/60" id="range-indicator">No.1 ～ No.1935</span>
+                        </div>
+
+                        <!-- Quick Part Presets -->
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <button type="button" onclick="setRangePreset(1, 400)" class="px-3 py-1.5 bg-slate-700/80 hover:bg-blue-600 hover:text-white text-xs text-slate-300 rounded-lg font-medium transition">Part 1 (1-400)</button>
+                            <button type="button" onclick="setRangePreset(401, 1000)" class="px-3 py-1.5 bg-slate-700/80 hover:bg-blue-600 hover:text-white text-xs text-slate-300 rounded-lg font-medium transition">Part 2 (401-1000)</button>
+                            <button type="button" onclick="setRangePreset(1001, 1400)" class="px-3 py-1.5 bg-slate-700/80 hover:bg-blue-600 hover:text-white text-xs text-slate-300 rounded-lg font-medium transition">Part 3 (1001-1400)</button>
+                            <button type="button" onclick="setRangePreset(1401, 1935)" class="px-3 py-1.5 bg-slate-700/80 hover:bg-blue-600 hover:text-white text-xs text-slate-300 rounded-lg font-medium transition">Part 4 (1401-1935)</button>
+                            <button type="button" onclick="setRangePreset(1, 1935)" class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg font-bold transition shadow-sm">全範囲 (1-1935)</button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-slate-400 mb-1 block">開始番号 (Start)</label>
+                                <input type="number" id="range-start" min="1" max="1935" value="1" onchange="validateRangeInputs()" class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 mb-1 block">終了番号 (End)</label>
+                                <input type="number" id="range-end" min="1" max="1935" value="1935" onchange="validateRangeInputs()" class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Target Word Status & Bookmark Filter -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">3. 単語絞り込みフィルター</label>
+                        <select id="status-filter" class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-medium text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="all">指定範囲のすべての単語</option>
+                            <option value="unlearned">「未習得」の単語のみ</option>
+                            <option value="review">「要復習」の単語のみ</option>
+                            <option value="bookmarked">「⭐ ブックマーク」の単語のみ</option>
+                            <option value="learned">「習得済み」の単語のみ</option>
+                        </select>
+                    </div>
+
+                    <!-- 4. Question Count & Order -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">4. 出題数</label>
+                            <select id="question-count" class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-medium text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <option value="10" selected>10 問</option>
+                                <option value="20">20 問</option>
+                                <option value="30">30 問</option>
+                                <option value="50">50 問</option>
+                                <option value="100">100 問</option>
+                                <option value="all">条件に合う全問</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2">5. 出題順序</label>
+                            <select id="question-order" class="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-medium text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <option value="shuffle" selected>ランダム（シャッフル）</option>
+                                <option value="sequential">単語番号順</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-base rounded-xl shadow-lg shadow-blue-600/30 transition transform active:scale-98 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play text-xl"></i> クイズ・学習を開始
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 2. QUIZ ACTIVE SCREEN (Multiple Choice / Typing) -->
+        <section id="tab-quiz-active" class="hidden max-w-2xl mx-auto space-y-4">
+            <!-- Header bar: Progress & Exit -->
+            <div class="flex justify-between items-center bg-slate-800/90 px-4 py-3 rounded-xl border border-slate-700 shadow-md">
+                <button onclick="confirmExitQuiz()" class="text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-left"></i> 中断して戻る
+                </button>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-slate-300" id="quiz-progress-text">1 / 10</span>
+                    <div class="w-28 sm:w-36 bg-slate-700 rounded-full h-2 overflow-hidden">
+                        <div id="quiz-progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 10%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Card -->
+            <div class="bg-slate-800/90 rounded-2xl border border-slate-700 shadow-xl p-6 sm:p-8 relative backdrop-blur-md">
+                <!-- Word Meta Header -->
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 bg-slate-700 text-slate-200 text-xs font-bold rounded-lg border border-slate-600" id="quiz-word-no">No. 1</span>
+                        <span class="px-2.5 py-1 bg-blue-900/60 text-blue-300 text-xs font-bold rounded-lg border border-blue-700/50" id="quiz-word-part">Part 1</span>
+                        <span class="text-xs text-slate-400 font-medium" id="quiz-word-pos">動詞</span>
+                    </div>
+                    <!-- Quick Bookmark Star Button -->
+                    <button id="quiz-bookmark-btn" onclick="toggleQuizBookmark()" class="text-2xl text-slate-600 hover:text-amber-400 transition">
+                        <i class="fa-solid fa-star"></i>
+                    </button>
+                </div>
+
+                <!-- Prompt Question Area -->
+                <div class="text-center py-4 mb-6">
+                    <div class="flex items-center justify-center gap-3">
+                        <h3 id="quiz-question-title" class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">agree</h3>
+                        <button id="audio-btn" onclick="speakCurrentWord()" class="w-10 h-10 rounded-full bg-blue-600/30 text-blue-400 hover:bg-blue-600/50 transition flex items-center justify-center border border-blue-500/30" title="発音を聞く">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                    </div>
+                    <p id="quiz-phonetic" class="text-sm text-slate-400 mt-1 font-mono">/əɡríː/</p>
+                </div>
+
+                <!-- Options / Typing Container -->
+                <div id="quiz-answers-container" class="space-y-3">
+                    <!-- Choices or Typing input rendered via JS -->
+                </div>
+
+                <!-- Immediate Feedback Card -->
+                <div id="quiz-feedback-box" class="hidden mt-6 pt-6 border-t border-slate-700 space-y-4">
+                    <div id="feedback-banner" class="p-3.5 rounded-xl flex items-center justify-between text-sm font-bold">
+                        <span id="feedback-status-text">正解！</span>
+                        <i id="feedback-icon" class="fa-solid fa-circle-check text-xl"></i>
+                    </div>
+
+                    <!-- Meaning & Example Detail -->
+                    <div class="bg-slate-900/80 p-4 rounded-xl text-sm space-y-2 border border-slate-700/60">
+                        <div>
+                            <span class="text-xs text-slate-400 block font-bold">意味</span>
+                            <span id="feedback-meaning" class="text-white font-bold text-base">～に同意する</span>
+                        </div>
+                        <div id="feedback-phrase-container" class="pt-2 border-t border-slate-800">
+                            <span class="text-xs text-slate-400 block font-bold">フレーズ / 例文</span>
+                            <p id="feedback-phrase" class="text-xs text-slate-300 italic mt-0.5">agree with the opinion (その意見に同意する)</p>
+                        </div>
+                    </div>
+
+                    <!-- Manual Status Override Controls -->
+                    <div class="flex items-center justify-between pt-2">
+                        <span class="text-xs text-slate-400 font-medium">ステータス更新:</span>
+                        <div class="flex gap-2">
+                            <button onclick="setQuizWordStatus('review')" class="px-3 py-1.5 bg-amber-950/60 text-amber-300 hover:bg-amber-900/80 rounded-lg text-xs font-semibold transition border border-amber-700/60">
+                                <i class="fa-solid fa-rotate-left mr-1"></i>要復習にする
+                            </button>
+                            <button onclick="setQuizWordStatus('learned')" class="px-3 py-1.5 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/80 rounded-lg text-xs font-semibold transition border border-emerald-700/60">
+                                <i class="fa-solid fa-check mr-1"></i>習得済みにする
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Next Question Button -->
+                    <button onclick="nextQuestion()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+                        <span>次の問題へ</span> <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. FLASHCARD MODE SCREEN -->
+        <section id="tab-flashcard-active" class="hidden max-w-2xl mx-auto space-y-4">
+            <div class="flex justify-between items-center bg-slate-800/90 px-4 py-3 rounded-xl border border-slate-700">
+                <button onclick="confirmExitQuiz()" class="text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-left"></i> 終了して戻る
+                </button>
+                <span class="text-xs font-bold text-slate-300" id="card-progress-text">1 / 10</span>
+            </div>
+
+            <!-- Flashcard Graphic Component -->
+            <div class="perspective-1000 w-full h-80 cursor-pointer" onclick="flipCard()">
+                <div id="flashcard-inner" class="flip-card-inner relative w-full h-full transform-style-3d bg-slate-800 rounded-2xl border-2 border-slate-700 shadow-2xl p-6 flex flex-col justify-between">
+                    
+                    <!-- FRONT SIDE -->
+                    <div class="absolute inset-0 backface-hidden p-8 flex flex-col justify-between bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl">
+                        <div class="flex justify-between items-center">
+                            <span class="px-2.5 py-1 bg-slate-700 text-slate-200 text-xs font-bold rounded-lg" id="card-no-front">No. 1</span>
+                            <button onclick="event.stopPropagation(); toggleFlashcardBookmark();" id="card-star-front" class="text-2xl text-slate-600 hover:text-amber-400">
+                                <i class="fa-solid fa-star"></i>
+                            </button>
+                        </div>
+                        <div class="text-center py-6">
+                            <h3 id="card-word-front" class="text-4xl font-extrabold text-white">agree</h3>
+                            <p id="card-phonetic-front" class="text-sm text-slate-400 mt-2 font-mono">/əɡríː/</p>
+                        </div>
+                        <div class="text-center text-xs text-slate-500 font-semibold">
+                            <i class="fa-solid fa-hand-pointer mr-1"></i> タップして裏面（意味）を表示
+                        </div>
+                    </div>
+
+                    <!-- BACK SIDE -->
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 p-8 flex flex-col justify-between bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl border border-blue-500/30">
+                        <div class="flex justify-between items-center">
+                            <span class="px-2.5 py-1 bg-blue-900/60 text-blue-300 text-xs font-bold rounded-lg" id="card-pos-back">動詞</span>
+                            <button onclick="event.stopPropagation(); speakCurrentCardWord();" class="w-8 h-8 rounded-full bg-blue-600/30 text-blue-400 hover:bg-blue-600 flex items-center justify-center">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </button>
+                        </div>
+                        <div class="text-center py-4">
+                            <h3 id="card-meaning-back" class="text-2xl sm:text-3xl font-extrabold text-amber-400 mb-2">～に同意する</h3>
+                            <p id="card-phrase-back" class="text-xs sm:text-sm text-slate-300 italic">agree with the opinion</p>
+                        </div>
+                        <div class="text-center text-xs text-slate-500 font-semibold">
+                            <i class="fa-solid fa-hand-pointer mr-1"></i> タップして表面へ戻る
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Flashcard Controls Footer -->
+            <div class="grid grid-cols-2 gap-4 pt-2">
+                <button onclick="handleFlashcardRating('review')" class="py-3.5 bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-700/60 font-bold rounded-xl shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i> 要復習にする
+                </button>
+                <button onclick="handleFlashcardRating('learned')" class="py-3.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 font-bold rounded-xl shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> 習得済みにする
+                </button>
+            </div>
+        </section>
+
+        <!-- 4. QUIZ RESULTS SCREEN -->
+        <section id="tab-quiz-result" class="hidden max-w-2xl mx-auto space-y-6">
+            <div class="bg-slate-800/90 rounded-2xl border border-slate-700 p-6 sm:p-8 text-center shadow-xl backdrop-blur-md">
+                <div class="w-20 h-20 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-blue-500/30">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-white">セッション完了！</h2>
+                <p class="text-sm text-slate-400 mt-1">学習お疲れ様でした。結果を確認しましょう。</p>
+
+                <div class="my-6 p-6 bg-slate-900/90 rounded-2xl flex items-center justify-around border border-slate-700/80">
+                    <div>
+                        <span class="text-xs text-slate-400 font-bold block">正解数</span>
+                        <span id="result-score" class="text-4xl font-extrabold text-blue-400">8 / 10</span>
+                    </div>
+                    <div class="h-10 w-px bg-slate-700"></div>
+                    <div>
+                        <span class="text-xs text-slate-400 font-bold block">正解率</span>
+                        <span id="result-accuracy" class="text-4xl font-extrabold text-emerald-400">80%</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-center">
+                    <button onclick="switchTab('quiz-setup')" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition">
+                        もう一度挑戦
+                    </button>
+                    <button onclick="switchTab('dashboard')" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl transition">
+                        ダッシュボードへ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detailed Answer Review List -->
+            <div class="bg-slate-800/90 rounded-2xl border border-slate-700 p-6 shadow-lg backdrop-blur-md">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between">
+                    <span>回答一覧・復習</span>
+                    <span class="text-xs font-normal text-slate-400">（⭐でブックマーク追加）</span>
+                </h3>
+                <div id="result-word-list" class="space-y-3 custom-scrollbar max-h-96 overflow-y-auto pr-1">
+                    <!-- Result items generated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. WORD LIST & GLOSSARY TAB -->
+        <section id="tab-word-list" class="hidden space-y-6">
+            <!-- Filter & Search Controls -->
+            <div class="bg-slate-800/90 p-5 rounded-2xl border border-slate-700 shadow-lg space-y-4 backdrop-blur-md">
+                <div class="flex flex-col md:flex-row gap-3 justify-between">
+                    <!-- Keyword Search -->
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                        <input type="text" id="list-search-input" oninput="filterWordList()" placeholder="単語・意味・No.（例: 17, admire）で検索..." class="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-semibold text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- Dropdown Filters -->
+            <div class="flex flex-wrap gap-2">
+                <select id="list-part-filter" onchange="filterWordList()" class="px-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-medium text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="all">すべてのPart (1-1935)</option>
+                    <option value="1">Part 1 (No.1-400)</option>
+                    <option value="2">Part 2 (No.401-1000)</option>
+                    <option value="3">Part 3 (No.1001-1400)</option>
+                    <option value="4">Part 4 (No.1401-1935)</option>
+                </select>
+
+                        <select id="list-status-filter" onchange="filterWordList()" class="px-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-sm font-medium text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="all">すべてのステータス</option>
+                            <option value="unlearned">未習得</option>
+                            <option value="review">要復習</option>
+                            <option value="learned">習得済み</option>
+                            <option value="bookmarked">⭐ ブックマーク中</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Word Cards Count Header -->
+            <div class="flex justify-between items-center px-1">
+                <span class="text-xs font-bold text-slate-400" id="list-count-label">該当 0 件</span>
+            </div>
+
+            <div id="word-cards-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Word Cards dynamically rendered -->
+            </div>
+        </section>
+
+        <!-- 6. DASHBOARD TAB -->
+        <section id="tab-dashboard" class="hidden space-y-6">
+            <!-- Welcome Banner -->
+            <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-800 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-blue-500/30">
+                <div class="relative z-10 max-w-2xl">
+                    <span class="bg-blue-900/80 text-blue-200 text-xs font-semibold px-3 py-1 rounded-full border border-blue-400/40 inline-block mb-3">2020年1月10日初版準拠 / 数研出版</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">LEAP 学習ダッシュボード</h2>
+                    <p class="text-blue-100 text-sm sm:text-base leading-relaxed mb-6">
+                        No.1～1937の学習進捗を完全可視化。要復習語やブックマーク単語を重点的に復習して、必携語彙を完全マスターしましょう。
+                    </p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="switchTab('quiz-setup')" class="px-5 py-2.5 bg-white text-blue-900 hover:bg-blue-50 font-bold rounded-xl shadow-lg transition transform active:scale-95 flex items-center gap-2">
+                            <i class="fa-solid fa-play"></i> クイズを開始する
+                        </button>
+                        <button onclick="confirmResetData()" class="px-4 py-2.5 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 font-semibold rounded-xl border border-rose-500/40 transition flex items-center gap-2 text-xs">
+                            <i class="fa-solid fa-trash-can"></i> 学習履歴をリセット
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-slate-800/90 p-5 rounded-xl border border-slate-700 shadow-md flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-slate-400 uppercase">全単語数</span>
+                        <div class="w-8 h-8 rounded-lg bg-slate-700 text-slate-300 flex items-center justify-center text-sm"><i class="fa-solid fa-hashtag"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-2xl sm:text-3xl font-bold text-white">1935</span>
+                        <span class="text-xs text-slate-400 ml-1">語 (全範囲)</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 p-5 rounded-xl border border-emerald-900/60 bg-emerald-950/20 shadow-md flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-emerald-400 uppercase">習得済み</span>
+                        <div class="w-8 h-8 rounded-lg bg-emerald-900/60 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-check"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-2xl sm:text-3xl font-bold text-emerald-400" id="dash-learned-count">0</span>
+                        <span class="text-xs text-emerald-500 ml-1" id="dash-learned-pct">(0%)</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 p-5 rounded-xl border border-amber-900/60 bg-amber-950/20 shadow-md flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-amber-400 uppercase">要復習</span>
+                        <div class="w-8 h-8 rounded-lg bg-amber-900/60 text-amber-400 flex items-center justify-center text-sm"><i class="fa-solid fa-rotate-left"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-2xl sm:text-3xl font-bold text-amber-400" id="dash-review-count">0</span>
+                        <span class="text-xs text-amber-500 ml-1">語 要要要チェック</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/90 p-5 rounded-xl border border-yellow-900/60 bg-yellow-950/20 shadow-md flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-amber-300 uppercase">⭐ ブックマーク</span>
+                        <div class="w-8 h-8 rounded-lg bg-yellow-900/60 text-amber-300 flex items-center justify-center text-sm"><i class="fa-solid fa-star"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-2xl sm:text-3xl font-bold text-amber-300" id="dash-bookmark-count">0</span>
+                        <span class="text-xs text-amber-400 ml-1">語 保存中</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEAP Part Progression Grid -->
+            <div class="bg-slate-800/90 rounded-2xl p-6 border border-slate-700 shadow-md">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-blue-400"></i> Part別 達成度一覧
+                </h3>
+                <div class="space-y-5" id="part-progress-container">
+                    <!-- Part progress bars rendered via JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+        LEAP Vocabulary Quiz & Learning Tool &copy; 2020 Edition Database (No.1 - 1937)
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /**
+         * LEAP 2020 First Edition Full 1935 Words Database
+         */
+        const RAW_TEXT_DATA = `1\tagree\t[自] ①賛成する ②（主語の中で）意見が一致する ③（with ～）（気候，食べ物が）（～に）合う
+2\toppose\t[他] ～に反対する
+3\tadvise\t[他] ～に忠告する
+4\ttip\t[名] ①助言，ヒント ②チップ ③（足や山などの）先，先端（いずれも〈可算〉）
+5\tdiscuss\t[他] ①～について話し合う，議論する ②～を話題に出す
+6\tblame\t[他] ～に責任があるとする, 非難する
+7\targue\t[他] ①（that S V）～と主張する [自] ②（with ～）（～と）言い争う
+8\tclaim\t[他] ①（that S V）～と主張する ②～を要求する，主張する [名] ③主張，要求
+9\tcomplain\t[自] ①文句を言う，苦情を言う ②（of ～）（病気などを）訴える
+10\toffer\t[他] ①～を申し出る [名] ②申し出 ③値引き
+11\tsuggest\t[他] ①～を提案する ②～を示唆する
+12\trecommend\t[他] ～を推薦する，勧める
+13\tgrateful\t[形] 感謝している
+14\tapologize\t[自] （to ～）（～に）謝る
+15\texcuse\t[名] ①言い訳 [他] ②～を許す ③（A from B）（B からA）を免除する
+16\tcelebrate\t[他] ①～を祝う ②（儀式など）を挙行する，執り行なう
+17\tadmire\t[他] ～に感心する，称賛する
+18\timpress\t[他] ～に感銘を与える，～を感心させる
+19\taward\t[名] ①賞 [他] ②～を授与する
+20\tdescribe\t[他] ～を説明する, 描写する
+21\texplain\t[他] ～を説明する
+22\tcommunicate\t[自] ①（with ～）（～と）意思の疎通をはかる [他] ②～を伝える
+23\texpress\t[他] ①（意見，気持ち）を表現する [名] ②急行（列車，バス）
+24\tpromise\t[名] ①約束 [他] ②～を約束する
+25\tinformation\t[名] 情報〈不可算〉
+26\ttechnology\t[名] （科学）技術
+27\tresearch\t[名] ①（学術）研究 [他] ②～を研究する
+28\tmaterial\t[名] ①材料，生地 ②資料，教材 [形] ③物質的な ④重大な
+29\tartificial\t[形] 人工的な
+30\telectric\t[形] 電気の，電動の
+31\tinvent\t[他] ①～を発明する ②（話など）をでっち上げる
+32\tdiscover\t[他] ①～を発見する ②（that S V）～を知る，～に気がつく ③（知るという意味で）～に出会う
+33\tdevelop\t[自] ①発達する [他] ②～を発達させる ③～を開発する ④（話，考え）を発展させる ⑤（病気）にかかる
+34\tskill\t[名] 技術，力
+35\tability\t[名] 能力
+36\ttalent\t[名] 才能
+37\teffort\t[名] 努力
+38\tpractice\t[名] ①練習 ②実践 ③慣習 [他] ④～を練習する ⑤～を実践する
+39\tgame\t[名] ①試合，ゲーム〈可算〉 ②獲物〈不可算〉
+40\tachieve\t[他] ～を達成する
+41\tmanage\t[他] ①（to do）何とかして～する ②～を経営する，管理する
+42\timprove\t[他] ①～を改善する，磨く [自] ②よくなる
+43\tproduce\t[他] ①～を生産する，産出する ②（見せるために）～を取り出す [名] ③農作物〈不可算〉
+44\tcreate\t[他] ①～を創造する ②～を引き起こす
+45\testablish\t[他] ①～を確立する，定着させる ②～を設立する
+46\tsave\t[他] ①（時間，手間）を省く ②～を貯金する ③（命など）を救う [前] ④～を除いて（＝except）
+47\tmedicine\t[名] ①（for ～）（～の）薬 ②医学
+48\tpatient\t[名] ①患者 [形] ②忍耐強い
+49\tcondition\t[名] ①状態，容態 ②（通例 －s）（周囲の）状況，条件
+50\tmedical\t[形] ①医療の ②医学の
+51\tstress\t[名] ①ストレス ②（on ～）（～に対する）強調 [他] ③～を強調する
+52\tsuffer\t[自] ①（from ～）（病気などで）苦しむ [他] ②（苦痛，損害）を経験する
+53\texercise\t[名] ①運動 ②（－s）練習 [自] ③運動する [他] ④～を行使する
+54\tbreathe\t[自] 呼吸する，息をする
+55\tthirsty\t[形] ①のどが渇いた ②（for ～）（～を）切望して
+56\tphysical\t[形] ①身体的な ②物理的な
+57\tfever\t[名] ①（体温の）熱 ②熱狂
+58\tstrength\t[名] ①（physical －）体力 ②力
+59\ttear\t[名] ①（通例 －s）涙〈可算〉 [他] ②（up）～を引き裂く
+60\ttaste\t[自] ①～の味がする [他] ②～の味をみる [名] ③味 ④好み
+61\trule\t[名] ①規則 [他] ②～を支配する
+62\trole\t[名] 役割
+63\thabit\t[名] 習慣，癖
+64\tcustom\t[名] ①習慣 ②（－s）税関
+65\ttradition\t[名] 伝統
+66\tsociety\t[名] ①社会〈不可算〉 ②（ある具体的な）社会〈可算〉 ③（one's －）～と同席すること ④協会
+67\tlaw\t[名] ①（the－）（集合的に）法律，国法 ②（個々の）法律 ③（科学などの）法則
+68\tancestor\t[名] 祖先
+69\tpopulation\t[名] ①人口，個体数 ②（一定の地域に住む）住民
+70\tnative\t[形] ①母国の，その土地の [名] ②（ある土地の）生まれの人
+71\tabroad\t[副] 海外へ，海外で
+72\tlocal\t[形] ①その土地の，地元の ②地方の [名] ③ 地元の人
+73\tsurvey\t[名] ①調査〈可算〉 [他] ②～を調査する
+74\tevidence\t[名] 証拠〈不可算〉
+75\tvalue\t[名] ①価値 ②（－s）価値観 ③お買い得品〈不可算〉 [他] ④～を重んじる
+76\ttreasure\t[名] ①財宝，宝 ②大事な物［人］ [他] ③（思い出など）を大事にする
+77\tfashion\t[名] ①流行 ②流儀，やり方 [他] ③（手などで）～を作る
+78\tpublic\t[名] ①（the －）大衆 [形] ②公の，公共の
+79\tvote\t[名] ①投票（数） [自] ②投票する
+80\tgovernment\t[名] 政府
+81\tnation\t[名] ①国家 ②（the －） 国民
+82\tcapital\t[名] ①首都 ②資本 [形] ③重大な，死に値する
+83\tstate\t[名] ①州 ②状態 ③国家 [他] ④（意見，情報）を述べる
+84\tpolitical\t[形] 政治的な，政治の
+85\tprice\t[名] ①価格 ②（－s）物価 ③代償
+86\tcost\t[他] ①（費用）を要する，～がかかる ②～を犠牲にする [名] ③費用，犠牲
+87\tsum\t[名] ①（修飾語を伴って）金額 ②合計 ③（簡単な）計算 [他] ④（up）～を要約する
+88\tbudget\t[名] 予算
+89\tfee\t[名] ①（会費，遊園地などの）料金 ②（専門職への）謝礼
+90\tfare\t[名] 運賃
+91\tbill\t[名] ①勘定 ②請求書 ③〈米〉紙幣 ④法案
+92\ttrade\t[名] ①貿易 ②（the ～ trade）～業 ③商売 [他] ④～を交換する
+93\twealth\t[名] ①富，財産〈不可算〉 ②（a － of ～）豊富な～
+94\teconomy\t[名] ①経済 ②節約
+95\tcompany\t[名] ①会社 ②（one's －）一緒にいること ③仲間 ④来客
+96\ttask\t[名] 仕事〈可算〉
+97\tearn\t[他] ①（金）を稼ぐ，もうける ②（評判など）を得る
+98\thurt\t[自] ①（身体の部位が）痛む [他] ②（身体，感情）を傷つける
+99\tinjure\t[他] ①～を痛める ②～をけがさせる
+100\tdamage\t[他] ①～に損害を与える [名] ②損害，被害〈不可算〉 ③（－s）賠償金
+101\tdestroy\t[他] ①～を（完全に）破壊する ②～を殺す，全滅させる
+102\truin\t[他] ①～を台無しにする ②～を破滅させる [名] ③（－s）廃墟，荒廃
+103\tdanger\t[名] 危険
+104\tneighbor\t[名] ①近所の人 ②（a next-door －）隣の人
+105\taudience\t[名] 聴衆，観客
+106\tcrowd\t[名] 群衆
+107\tauthor\t[名] ①著者 ②作家
+108\tstaff\t[名] （集合的に）職員，従業員
+109\tclerk\t[名] ①〈米〉店員 ②事務員，社員
+110\tcustomer\t[名] 客
+111\tpassenger\t[名] 乗客
+112\telderly\t[形] ①年配の ②（the －）年配の人々
+113\tfemale\t[形] ①女性の ②（動物）雌の [名] ③女性，雌
+114\thead\t[自] ①向かう [他] ②～を率いる
+115\tfollow\t[他] ①～の後について行く，～に続く ②（忠告，方針など）に従う
+116\twander\t[自] 歩き回る，さまよう
+117\ttravel\t[自] ①旅行する，移動する ②（光，音などが）進む
+118\tpass\t[他] ①～を通り過ぎる ②～を抜く ③（試験）に受かる ④（（人）A）（人）に（A を）渡す [自] ⑤（時が）過ぎる [名] ⑥通行証
+119\tlikely\t[形] ①（to do）～しそうだ，可能性が高い [副] ②おそらく
+120\tnatural\t[形] ①当然の ②自然の ③生まれながらの
+121\tcertain\t[形] ①確かな ②（名詞の前で）ある～
+122\tprobably\t[副] おそらく
+123\tface\t[他] ①～に直面する ②〈方向〉～向きである [名] ③顔，体面
+124\tavoid\t[他] ～を避ける
+125\tsolve\t[他] ～を解決する
+126\ttrouble\t[名] ①問題，ごたごた（通例〈不可算〉） [他] ② ～を困らせる
+127\tissue\t[名] ①問題 ②（雑誌の）号 [他] ③（切手など）を発行する
+128\tcheer\t[他] ①（on）～に声援を送る ②（up）～を励ます
+129\tencourage\t[他] ①（A to do）（A）に（～するよう）促す，奨励する ②～を励ます
+130\tsupport\t[他] ①～を支持する ②（家族など）を養う ③（理論など）を立証する [名] ④支持，支援
+131\tprevent\t[他] ①～を妨げる ②～を予防する
+132\tdeny\t[他] ①～を否定する ②〈S V O1 O2〉（O1）に（O2を）与えない
+133\tenable\t[他] （A to do）（A）に［が］（～することを）可能にする
+134\tsucceed\t[自] ①（in ～）（～に）成功する ②（to ～）（家業などを）継ぐ
+135\tmiss\t[他] ①～を逃す ②～を休む ③～を恋しく思う
+136\tfail\t[自] ①（in［at］～）（～に）失敗する ②（to do）～できない [他] ③（試験）に落ちる ④（人）に役に立たない
+137\tmistake\t[名] ①間違い [他] ②（A for B）（A）を（B と）間違える
+138\tcheck\t[他] ①～を調べる ②～を阻止する [名] ③小切手 ④勘定書 ⑤検査，点検 ⑥抑制
+139\thide\t[他] ①～を隠す [自] ②隠れる
+140\tdraw\t[他] ①（線で絵など）を描く ②（注意）を引く ③ ～を引っ張る，集める
+141\tjoin\t[他] ①（クラブ，団体など）に加わる ②～をつなぐ ③（食事などを）～とともにする [自] ④（議論，活動などに）参加する
+142\tthrow\t[他] ①～を投げる ②（away［out］）～を捨てる ③（パーティなど）を催す [名] ④投げること
+143\toperate\t[他] ①（機械など）を操作する [自] ②手術する ③（機械などが）作動する，（組織が）運営される
+144\trepair\t[他] ①～を修理する ② ～を修復する [名] ③ 修理，修復
+145\tsew\t[他] ①～を縫う ②（on）（ボタンなど）を縫いつける
+146\traise\t[他]① ～を上げる ②（子ども，作物）を育てる ③（お金，資金）を集める ④（問題）を提起する [名]⑤賃上げ，昇給
+147\tserve\t[他] ①（飲食物）を出す ②～に役立つ [自] ③ 役立つ
+148\tpour\t[他] ①～を注ぐ [自] ②降りそそぐ
+149\tspill\t[他] ①～をこぼす [名] ②（石油などの）流出
+150\tpretend\t[自] （to do / that S V）（～する/ ～である）ふりをする
+151\tbehave\t[自] ふるまう
+152\tbear\t[他] ①（can －）～に耐える ②～を持つ ③～を産む
+153\texplore\t[他] ①～を探検する，（街など）を探索する ②（問題など）を探る
+154\thappen\t[自] ①（to ～）（～に）起こる ②（to do）偶然～する
+155\tappear\t[自] ①現れる ②（to be ～）～のように思える
+156\tremain\t[自] ①～のままでいる ②残る
+157\tsurvive\t[自] ①生き残る [他] ②～から生き延びる，～の後も存続する
+158\tbelong\t[自] （to ～）①（～に）所属している ②（～の）所有物である
+159\trepresent\t[他] ①～を代表する ②（記号などが）を表す ③～を表現する
+160\tbase\t[他] ①～の基礎を置く [名] ②基礎（の部分），基盤 ③基地
+161\tinclude\t[他] ～を含む
+162\tcontain\t[他] ①～を含む ②～を抑える
+163\town\t[形] （所有格の後で）①自分自身の ②（名詞的に）自分自身のもの [他] ③～を所有している
+164\tshare\t[他] ①～を共有する ②（考えなど）を（人に）伝える [名] ③共有 ④分け前
+165\tcollect\t[他] ①（同種の物）を集める ②～を徴収する，回収する
+166\tgather\t[他] ①～を集める [自] ②集まる
+167\thistory\t[名] ①歴史 ②履歴，前歴，病歴
+168\tsubject\t[名] ①科目 ②話題 ③被験者 [形] ④（be － to ～）～を受けやすい
+169\teducation\t[名] 教育
+170\tknowledge\t[名] 知識，知っていること
+171\tuniform\t[名] ①制服 [形] ②同一の，一定の
+172\tgrade\t[名] ①（小，中，高の）学年 ②等級 ③成績
+173\tsenior\t[名] ①（高校，大学の）最上級生 [形] ②高齢者の ③（地位が）上位の
+174\tgraduate\t[自] （from ～）（～を）卒業する
+175\tdecide\t[他] ①（to do）（～すること）を決定する，決心する [自] ②（on ～）（～を）決める
+176\tjudge\t[他] ①～を判断する [名] ②裁判官，審判（員）
+177\tquit\t[他] ～を（完全に）やめる
+178\tretire\t[自] （from ～）（～を）引退する，退職する
+179\treview\t[名] ①再検討 ②（新聞などの）批評 ③復習
+180\tchoose\t[他] ①～を選ぶ [自] ②選ぶ
+181\timagine\t[他] ～を想像する
+182\tguess\t[他] ①～を推測する [名] ②推測
+183\texpect\t[他] ①～を予期する ②（A of［from］ B）（B にA）を期待する ③（be －ing）（～を）身ごもっている
+184\tpredict\t[他] ～を予測する
+185\tremember\t[他] ①（doing）（過去にしたこと）を覚えている ②（to do）（～すること）を覚えている ③（me to ～）（～に）よろしく伝える
+186\tremind\t[他] ①（A of B）（A）に（B のことを）思い出させる ②（（人）to do）（人）に～するように念を押す
+187\trealize\t[他] ①～を（はっきり）理解する ②（夢，計画など）を実現する
+188\tappreciate\t[他] ①～を（正しく）理解する ②～のよさがわかる ③～に感謝する
+189\taccept\t[他] ～を受け入れる
+190\tconsider\t[他] ①～をよく考える，考慮する ②（人の気持ち）を思いやる ③（A （to be） B） （A）を（B と）みなす
+191\tmind\t[自] ①気にする [名] ②精神，頭脳 ③（才能，知性のある）人
+192\twonder\t[他] ①（wh－節 / if S V）～かなと思う [自] ②（at ～）（～に）驚く
+193\tseem\t[自] ～のように思われる
+194\tcompare\t[他] ①（A with［to, and］ B）（A）を（B と）比較する ②（A to B）（A）を（B に）例える [自] ③（with［to］～）（～に）匹敵する
+195\tconcentrate\t[自] ①（on ～）（～に）集中する [他] ②（A on B）（A）を（B に）集中させる
+196\tfocus\t[自] ①（on ～）（～に）焦点を当てる，力を注ぐ [名] ②焦点
+197\tallow\t[他] ①（人が）～を許可する ②（物が）～を可能にする
+198\tadmit\t[他] ①～を認める ②～の入場［入学］を許可する
+199\tground\t[名] ①地面 ②根拠
+200\tpollution\t[名] 汚染，公害〈不可算〉
+201\tsight\t[名] ①光景 ②視力
+202\tview\t[名] ①眺め，景色〈可算〉 ②見解，見方〈不可算〉 [他] ③（A as B）（A）を（B と）みなす
+203\tlandscape\t[名] ①風景 ②（the －）（政治，社会の）情勢
+204\tnature\t[名] ①（無冠詞）自然 ②（しばしばthe － of ～） （～の）性質
+205\tseed\t[名] ①種 ②シード選手
+206\tplant\t[名] ①植物 ②（大規模な）工場 [他] ③～を植える
+207\tbloom\t[自] ①（花が）咲く [名] ②開花
+208\tharvest\t[名] ①収穫 [他] ②～を収穫する ③（臓器，体液など）を摘出する
+209\tinsect\t[名] 昆虫
+210\tearthquake\t[名] 地震
+211\ttemperature\t[名] ①温度，気温 ②体温
+212\tdegree\t[名] ①（温度などの）度 ②程度 ③ 学位
+213\tflood\t[名] ①洪水 [他] ②～を水浸しにする
+214\tfreeze\t[自] ①凍る，凍りつく [他] ②～を凍らせる
+215\treflect\t[他] ①～を反射する ②～を反映する [自] ③（on ～）（～を）熟考する
+216\tpolite\t[形] （人，言動が）礼儀正しい
+217\trude\t[形] 無礼な，不作法な
+218\tlonely\t[形] 孤独な
+219\tlazy\t[形] ①（やる気がなく）怠惰な，いい加減な ②（名詞の前で）くつろいだ
+220\tstrict\t[形] 厳しい
+221\tugly\t[形] 醜い
+222\tintelligent\t[形] 知的な，賢い
+223\tsilly\t[形] ばかな
+224\tnervous\t[形] ①あがって，落ち着かない ②神経質な，臆病な ③（身体の）神経の
+225\tawake\t[形] 目を覚まして
+226\tattitude\t[名] 態度，姿勢
+227\tcharacter\t[名] ①性格，特徴 ②登場人物 ③文字
+228\tcharacteristic\t[名] ①特徴〈可算〉 [形] ②特有の，特徴的な
+229\tfeature\t[名] ①特徴 ②特集記事 [他] ③～を特集する
+230\tdetail\t[名] ①詳細 ②（建物などの）細部
+231\tadvantage\t[名] （over ～）（～に対する）利点
+232\tfault\t[名] ①（ちょっとした）欠点，不具合〈可算〉 ②（one's －）責任〈不可算〉 ③断層
+233\tquality\t[名] ①質〈不可算〉 ②（通例－s）（人間の）資質
+234\tcorrect\t[形] ①正確な，正しい [他] ②～を訂正する，矯正する
+235\tideal\t[形] ①理想的な，申し分のない [名] ②理想，理想的な姿
+236\tfair\t[形] ①公正な，公平な [名] ②品評会，見本市
+237\tappropriate\t[形] 適切な
+238\tfamous\t[形] ①（for one's ～）（～で）有名な ②（as ～）（～として）有名な
+239\telementary\t[形] 初歩的な，基本の
+240\tmajor\t[形] ①主要な [自] ②（in ～）（～を）専攻する
+241\tmatter\t[自] ①重要である [名] ②（修飾語を伴い）物質 ③（－s）事態，状況
+242\tbright\t[形] ①明るい ②（主に子どもや若者が）賢い
+243\tbrilliant\t[形] ①輝いている ②すばらしい
+244\tlively\t[形] 生き生きとした
+245\tcomfortable\t[形] ①（物が）快適な ②（人が）心地よい
+246\tpleasant\t[形] （人にとって）楽しい，心地よい
+247\tconvenient\t[形] ①都合がよい ②近くて便利がよい
+248\tFALSE\t[形] ①誤った ②偽の
+249\tterrible\t[形] ①ひどい ②苦手で
+250\tawful\t[形] ひどい，不快な
+251\tthin\t[形] ①薄い ②（病的に）やせた ③（毛が）薄い
+252\ttight\t[形] ①引き締まった，きつい ②厳しい
+253\tloose\t[形] ①ゆるい ②解き放たれた
+254\traw\t[形] 生の，加工されていない
+255\tempty\t[形] ①空の，中身のない [他] ②～を空にする
+256\tsmooth\t[形] ①滑らかな ②順調な [他] ③（服のしわ）をのばす，（髪）をなでつける
+257\tdirect\t[形] ①直接的な [他] ②～を指揮［監督，演出］する ③（注意など）を向ける ④～に道を教える
+258\tfamiliar\t[形] ①知られた ②（人が）（よく）知っている
+259\tsimilar\t[形] （to ～）（～に）似た
+260\tdiffer\t[自] 異なる
+261\tvary\t[自] さまざまだ，変わる
+262\tspecific\t[形] ①特定の ②明確な，具体的な
+263\tcommon\t[形] ①普及した，普通の ②（主に名詞の前で）共通の
+264\tunusual\t[形] 珍しい
+265\tadd\t[他] ①～を加える [自] ②（to ～）（～を）増やす
+266\tincrease\t[自] ①増える [他] ②～を増やす [名] ③（in ～）（～の）増加
+267\treduce\t[他] ①～を減らす ②（A to B） A をB にする
+268\tdivide\t[他] ①～を分割する ②（by ～）（～によって）（数字）を割る
+269\tcount\t[他] ①～を数える [自]②数える ③重要である ④（on ～）（～を）（全面的に）当てにする
+270\tweigh\t[自] ①～の重さがある [他] ②～の重さを量る ③～を（比較）検討する
+271\tquarter\t[名] ①4 分の1 ，15分，25セント ②（都市のある特定な）地域
+272\tlot\t[名] ①（a － of ～）多くの～ ②（副詞的に）（a －）とても ③（one's）（～の）状況，運命 ④（何らかの目的を持つ）土地
+273\tpile\t[名] ①積み重ね，山 ②多量 [他] ③～を積み重ねる
+274\trate\t[名] ①割合，速さ ②（ホテルなどの一定の）料金 [他] ③～を評価する
+275\tfigure\t[名] ①数字 ②人物 ③スタイル，体つき ④図 [自] ⑤目立つ
+276\tlack\t[名] ①（（a）－ of ～）（～の）不足 [他] ②～を欠いている
+277\textra\t[形] ①余分な，追加の，臨時の [名] ②余分な［追加された］もの
+278\tready\t[形] ①用意ができている ②（be ～ to do）進んで～する
+279\tprepare\t[他] ①～の準備をする，用意をする [自] ②準備をする，用意をする [形] ③（be －d to do）（～する）準備ができている
+280\tadjust\t[自] ①（to ～）（～に）慣れる [他] ②～を調整する
+281\tapply\t[自] ①（to ～）（～に）当てはまる ②（for ～）（～に）申し込む [他] ③～を当てはめる，応用する ④（薬，口紅など）を塗る
+282\tsuit\t[他] ①（人）に適している，好都合だ ②（服装，色が人）に似合う [名] ③訴訟（＝lawsuit） ④ スーツ
+283\tcase\t[名] ①場合 ②（the －）事実 ③（犯罪）事件 ④症例 ⑤（make a －）主張（する）
+284\tscene\t[名] ①（劇，小説などの）場面 ②（事故）現場 ③（the ～ scene）～（業）界
+285\tchance\t[名] ①（to do）（～する）機会 ②（of ～ / that S V）（～の/ ～する）可能性
+286\topportunity\t[名] （よい）機会，好機
+287\texperience\t[名] ①経験 ②（個々の）体験 [他] ③～を経験する
+288\ttime\t[名] ①（漠然とした）時間 ②（ある長さの）時間 ③回数 ④倍 ⑤（－s）情勢，時代 ⑥（接続詞的に（the） next －）次に～するとき
+289\tspring\t[名] ①春 ②泉，温泉 [自] ③飛び出る，突然出現する
+290\tminute\t[名] ①（時間の）分 ②（a －）ちょっとの間 ③（－s）議事録 [形] ④とても小さい，細かい [接] ⑤（the －）～するとすぐに
+291\tperiod\t[名] ①時代 ②期間 ③（学校の）時限
+292\tgeneration\t[名] ①世代 ②生み出すこと ③発電
+293\tanniversary\t[名] 記念日
+294\trecently\t[副] 最近，近ごろ
+295\tused\t[助] ①（to ～）以前は～だった，よく～したものだ [形] ②（be － to doing）（～することに）慣れている ③中古の
+296\tearly\t[副] ①（時間，時期が）早く，初期に ②（予定より）早く [形] ③早い，初期の
+297\tfirst\t[形] ①第1 の ②（for the － time）初めて [副] ③ 初めて ④（文頭で）まず第1 に（＝firstly） [名]⑤（at －）最初のうちは
+298\tlatest\t[形] （the －）最新の
+299\tmodern\t[形] ①現代の ②近代的な
+300\tlatter\t[形] ①後半の [名] ②（the －）後者
+301\tspend\t[他] ①（時間）を費やす ②（お金）を使う
+302\tdelay\t[他] ①～を遅らせる [名] ②遅延，延期
+303\tborrow\t[他] ～を借りる
+304\tlend\t[他] ①（無償で）～を貸す ②（銀行が利子をつけて）を貸す
+305\trent\t[他] ①～を借りる ②（A to B）（A）を（B に）賃貸しする [名] ③家賃，賃貸料，使用料
+306\tprovide\t[他] ～を供給する，与える
+307\tshelf\t[名] 棚（の一段）
+308\tboard\t[名] ①（細長い）板 ②（幹部などによる）委員会 [他] ③～に乗る
+309\tgarbage\t[名] ごみ
+310\titem\t[名] ①品物 ②項目 ③（短い）記事
+311\twheel\t[名] ①車輪 ②（the －）ハンドル [他] ③（車輪のついたもの）を動かす
+312\tnote\t[名] ①メモ ②〈英〉紙幣 [他] ③（that S V）（～ということ）を指摘する ④ ～に注意を払う
+313\tpresent\t[名] ①プレゼント ②現在 [形] ③現在の ④ 出席して，存在して [他] ⑤～を贈る，提示する
+314\tstuff\t[名] ①（漠然とした）もの [他] ②～を詰める
+315\tstring\t[名] ①ひも ②（a － of ～）一連の～ ③（ギターなどの）弦
+316\tleisure\t[名] ①余暇 ②（形容詞的に）余暇の
+317\tdiet\t[名] ①食事 ②規定食 ③（D－） （日本の）国会
+318\tfurniture\t[名] 家具〈不可算〉
+319\trefrigerator\t[名] 冷蔵庫
+320\ttraffic\t[名] 交通（量）〈不可算〉
+321\tjam\t[名] ①渋滞 ②ジャム
+322\tsell\t[他] ①～を売る [自] ②売れる
+323\tpay\t[他] ①（A for B） （B の代金としてA）を支払う [自] ②（for A） （A の代金を）支払う ③（仕事などが）割に合う [名] ④給料
+324\twear\t[他] ①～を身につけている ②～をすり減らす [自] ③すり減る
+325\tclothes\t[名] 服〈複数扱い〉
+326\tmarry\t[他] ～と結婚する
+327\tgreet\t[他] ～に挨拶する，出迎える
+328\torder\t[他] ①～を注文する ②（医者や上官などが）～に命令する [名] ③ 注文 ④命令 ⑤順序 ⑥秩序
+329\troom\t[名] ①部屋 ②余地，空間〈不可算〉
+330\tstory\t[名] 階
+331\tsite\t[名] ①用地 ②現場，場所 ③（史跡などの）跡
+332\tyard\t[名] ①（主に〈米〉）庭 ②ヤード（＝約0.9 m）
+333\tbottom\t[名] ①底 ②一番下，最下位 ③ 尻
+334\tline\t[名] ①列 ②行，線 ③電話回線 ④セリフ [自] ⑤（up）並ぶ
+335\trow\t[名] ①列 [他] ②（ボート）をこぐ
+336\tbackground\t[名] ①背景 ②経歴，生い立ち
+337\tdirection\t[名] ①方向，方角 ②（－s）道順 ③指示
+338\tart\t[名] ①芸術 ②技術 ③（liberal －s）一般教養
+339\tculture\t[名] ①文化 ②培養，養殖 ③教養 [他] ④～を耕す，栽培［養殖］する
+340\tcartoon\t[名] 漫画
+341\tnovel\t[名] ①小説 [形] ②斬新な
+342\tinstrument\t[名] ①楽器 ②器具
+343\ttune\t[名] ①曲 [自] ②（番組）にチャンネルを合わせる [他] ③～の調子を合わせる
+344\tsentence\t[名] ①（ 1 つ1 つの）文 ②判決 [他] ③（A to B）（A）を（B）の刑にする
+345\tarticle\t[名] ①記事 ②品物 ③冠詞 ④条項
+346\tpassage\t[名] ①（文章などの）一節 ②（時の）経過，移動 ③通路
+347\tvocabulary\t[名] 語彙
+348\trumor\t[名] うわさ
+349\tspell\t[他] ①～をつづる [名] ②呪文 ③（天気などのある一続きの）期間
+350\tpronounce\t[他] ①（単語など）を発音する ②（判決など）を宣告する，～と断言する
+351\tsign\t[名] ①兆候，印 ②標識，看板，掲示 [他] ③ ～を署名する
+352\tmean\t[他] ①～を意味する ②（to do）～するつもりだ [形] ③意地悪な
+353\tpublish\t[他] ①～を出版する ②（公式に結果など）を発表する
+354\tdisplay\t[他] ①～を展示する ②（実力など）を発揮する ③～を誇示する [名] ④展示，表現，誇示
+355\ttrust\t[他] ①～を信頼する [名] ②信頼，信用
+356\tdepend\t[自] ①（物，事が主語）（on ～）（～）次第である ②（人が主語）（on ～）（～に）頼っている
+357\trely\t[自] （on ～）（～に）頼る
+358\tpray\t[自] 祈る
+359\tbeg\t[他] ①～を嘆願する [自] ②求める
+360\tprefer\t[他] （A to B） （B よりA）を好む
+361\tweep\t[自] しくしく泣く
+362\thate\t[他] ～を嫌う
+363\tworry\t[自] ①心配をする [名] ②心配（事）
+364\tanxious\t[形] ①（about ～）（～を）心配して ②（to do / for ～）（～を）切望して
+365\tsatisfy\t[他] ①～を満足させる ②（必要性，空腹など）を満たす
+366\tannoy\t[他] ～をいらだたせる
+367\tbother\t[他] ①～に面倒をかける ②（to do）わざわざ～する [名] ③面倒なもの
+368\tdisturb\t[他] ①（うるさくして）～に迷惑をかける ②（平和など）を乱す
+369\tfrighten\t[他] ～をおびえさせる
+370\tupset\t[他] ①～を動揺させる ②（均衡など）を乱す [形] ③動揺して，腹を立てて
+371\tregret\t[他] ①～を後悔する ②（to do）残念ながら～しないといけない [名] ③後悔
+372\tfavor\t[名] ①親切な行為 ②支持
+373\tinterest\t[名] ①関心 ②（－s）利益 ③（銀行などの）利子
+374\tpity\t[名] ①残念なこと〈可算〉 ②哀れみ〈不可算〉
+375\tdue\t[形] ①（due to （名詞））（名詞）が原因で ②締め切りの ③到着［出産］予定の
+376\treason\t[名] ①理由 ②理性 [他] ③～を推理する [自] ④思考する，判断する
+377\tresult\t[名] ①結果 [自] ②（in ～）結果として（～に）なる ③（from ～）（～の）結果として生じる
+378\teffect\t[名] 効果，影響，結果
+379\tinfluence\t[名] ①影響（力） [他] ②～に影響を与える
+380\tcause\t[他] ①～を引き起こす [名] ②原因
+381\taffect\t[他] ～に影響を与える，作用する
+382\tway\t[名] ①方法 ②（in ～ way）（～の）点（で） ③道 [副] ④はるかに
+383\tmanner\t[名] ①方法 ②流儀，態度 ③（－s）マナー
+384\tpurpose\t[名] 目的
+385\tsake\t[名] ①（for ～）ため ②日本酒
+386\tright\t[副] ①（場所や時の副詞（句）を修飾して）ちょうど [形] ②正しい，適切な ③右の [名] ④（to ～）（～の）権利
+387\tcomplete\t[形] ①完全な [他] ②～を完成させる
+388\thardly\t[副] ①（程度）ほとんど～ない ②（－ ever）めったに～ない
+389\tnearly\t[副] ①ほとんど ②あやうく～しかける
+390\tpartly\t[副] ある程度，部分的に
+391\tactually\t[副] ①実は ②実際に
+392\tindeed\t[副] ①（強調として）実際に，本当に ②（but を伴って）確かに～
+393\teven\t[副] ①さえも ②（比較級の前で）さらに
+394\texactly\t[副] ①正確に ②〈会話で〉そのとおり
+395\tgradually\t[副] 徐々に
+396\ttherefore\t[副] それゆえに
+397\tinstead\t[副] ①代わりに ②（of ～）（～の）代わりに
+398\tuntil\t[前] ①～まで（ずっと） [接] ②～まで（ずっと）
+399\tbesides\t[前] ①～に加えて [副] ②おまけに
+400\texcept\t[前] ①～を除いて ②（for ～）（～を）除いて
+401\tdebate\t[名] ①討論 [他] ②～を討論する
+402\tcriticize\t[他] ～を批判する
+403\taccuse\t[他] ①～を非難する ②～を告訴する
+404\tinsist\t[自] ①（on ～）（～と）言い張る，（強く）主張する [他] ②～と主張する
+405\tobject\t[自] ①（to ～）（～に感情的に）反対する [名] ②物 ③目的 ④（嘲笑，欲望などの）対象
+406\tprotest\t[自] ①（against ～）（～に対して）抗議する [名] ②抗議
+407\tcontroversial\t[形] 論争を招く，物議をかもす
+408\tbound\t[形] ①（to do）きっと～（する，～する［である］に違いない） ②（for ～）～行きで
+409\tbet\t[他] ①（that S V）きっと～だと思う ②～を賭ける
+410\tcongratulate\t[他] （人）を祝う，～にお祝いを述べる
+411\tpraise\t[他] ①（A for B）（A）を（B のことで）褒める，称える [名] ②賞賛
+412\thonor\t[名] ①名誉，栄誉 [他] ②～を敬う
+413\tchat\t[自] ①おしゃべりする [名] ②おしゃべり
+414\trefer\t[自] （to ～）①（人が主語）（～に）言及する，参照する ②（物が主語）（～を）示す
+415\tmention\t[他] ～について述べる，言及する
+416\tconvey\t[他] ①～を伝える ②（乗客，音，病気など）を運ぶ
+417\temphasize\t[他] ～を強調する
+418\texaggerate\t[他] ①～を誇張する [自] ②誇張する，大げさに言う
+419\treply\t[自] ①（to ～）（～に）返事をする，答える [名] ②返事，答え
+420\trespond\t[自] ①（to ～）（手紙や問いなどに）返答する ②（to ～）（～に）対応する，反応する
+421\twhisper\t[自] ①ささやく [名] ②ささやき（声）
+422\tremark\t[名] ①発言 [他] ②～と発言する
+423\tobserve\t[他] ①～を観察する ②（that S V）（気づいたことを）～と述べる ③（規則など）を遵守する ④（記念日など）を祝う
+424\ttheory\t[名] ①理論 ②（学）説
+425\tanalysis\t[名] 分析
+426\texperiment\t[名] ①実験 [自] ②実験する
+427\tdevice\t[名] 装置
+428\tphenomenon\t[名] ①現象 ②特異なもの，天才
+429\tsubstance\t[名] ①物質 ②本質，根拠
+430\tchemical\t[名] ①（通例 －s）化学物質 [形] ②化学の
+431\tfuel\t[名] ①燃料 [他] ②（感情など）を大きくする
+432\tnuclear\t[形] 原子力の，核の
+433\tstatistics\t[名] ①統計（値）〈複数扱い〉 ②統計学〈不可算〉
+434\tpursue\t[他] ①～を追求する，続ける ②～を追跡する
+435\taccomplish\t[他] ～をやり遂げる
+436\tovercome\t[他] ～を克服する
+437\tfulfill\t[他] ①（義務，願望など）を果たす ②（必要など）を満たす
+438\tdevote\t[他] （A to B） （A）を（B に）ささげる
+439\taim\t[自] ①狙う [他] ②（-ed at ～）～向けだ [名] ③狙い，目的
+440\tchallenge\t[名] ①難問，課題 [他] ②～に異議を唱える
+441\ttrial\t[名] ①試み ②裁判 ③試練
+442\tdizzy\t[形] めまいがして
+443\tpale\t[形] ①（顔色が）青白い，青ざめた ②（色が）淡い
+444\tappetite\t[名] 食欲
+445\tstarve\t[自] ①（be －ing）とてもお腹が空いている ②餓死する
+446\tmental\t[形] ①精神の ②知力の
+447\trest\t[名] ①休憩 ②（the －）残り [自] ③（横になったりして）休む ④（on ～）（～）次第だ [他] ⑤～を休ませる
+448\tache\t[名] ①痛み [自] ②痛む
+449\tsurgery\t[名] ①手術 ②外科（① ②ともに〈不可算〉)
+450\tdisease\t[名] 病気
+451\tsymptom\t[名] ①（通例 －s）症状 ②兆候
+452\tcancer\t[名] ①がん ②（C－）カニ座
+453\tambulance\t[名] 救急車
+454\trecover\t[自] ①（from ～）（～から）回復する [他] ②（盗品など）を取り戻す
+455\tsore\t[形] ①（のどや筋肉が）痛い ②（話題など）触れてほしくない，心が痛む
+456\tswell\t[自] ①（手足などが）腫れる ②（風船，費用などが）膨らむ
+457\tcough\t[自] ①咳をする [名] ②咳〈可算〉
+458\tbleed\t[自] 出血する
+459\tfaint\t[形] ①（色，光などが）かすかな [自] ②気絶する [名] ③気絶
+460\texhaust\t[他] ①～を疲れ果てさせる ②～を使い果たす [名] ③排出，排気ガス
+461\tcure\t[他] ①～を治療する [名] ②治療法
+462\tdisabled\t[形] ①障がいのある [名] ②（the －）（集合的に）障がいのある人
+463\tstiff\t[形] ①（筋肉などが）凝った，（動かすと）痛い ② 堅い
+464\tmuscle\t[名] 筋肉
+465\ttongue\t[名] ①舌 ②言語，言葉 ③（have a ～ tongue）話し方
+466\tsense\t[名] ①感覚 ②分別 ③意味 [他] ④（何となく）～を感じる
+467\tsweat\t[名] ①汗（通例〈不可算〉） [自] ②汗をかく
+468\tnationality\t[名] 国籍
+469\tcitizen\t[名] ①市民 ②国民
+470\tcivil\t[形] ①（一般）市民の ②国内の ③礼儀正しい
+471\tracial\t[形] 人種の，民族の
+472\tdomestic\t[形] ①国内の ②家庭内の
+473\trural\t[形] 田舎の
+474\tsuburb\t[名] （通例the －s）郊外
+475\tborder\t[名] ①国境（地帯），境界 [他] ②～を縁取る
+476\tburden\t[名] 重荷，負担
+477\timpact\t[名] ①（on ～）（～への）影響 ②（物体間の）衝撃 [自] ③（on ～）（～に）影響を及ぼす
+478\tstatus\t[名] ①地位 ②（特定の時点の）状況
+479\tequal\t[形] ①（to ～）（～に）等しい，平等な [他]②～に等しい
+480\trelationship\t[名] ①関係 ②親密な関係 （①②ともに〈可算〉）
+481\treputation\t[名] （人，物の）評判〈可算〉
+482\ttrend\t[名] ①（世の中の）風潮，傾向 ②流行
+483\tservice\t[名] ①（政府あるいは企業による）事業，制度 ②（電車，バスの）便 ③サービス，接客〈不可算〉
+484\treligion\t[名] 宗教
+485\tmoral\t[形] ①道徳的な [名] ②（物語の）教訓 ③（－s）道徳
+486\tstandard\t[名] ①基準，水準 [形] ②標準の
+487\tprosperity\t[名] 繁栄
+488\tcrisis\t[名] 危機
+489\tprejudice\t[名] ①偏見，先入観 [他] ②～に偏見をもたせる
+490\tdiscrimination\t[名] ①差別 ②識別
+491\tcharity\t[名] ①慈善（事業）〈不可算〉 ②慈善団体〈可算〉 ③（形容詞的に）慈善のための
+492\tbenefit\t[名] ①恩恵 ②（－s）手当 [自] ③（from ～）（～から）利益を得る [他] ④～に利益を与える
+493\twelfare\t[名] ①福祉 ②（健康なども含めた）幸福 ③生活保護
+494\tcommunity\t[名] （地域）社会，共同体（の人々）
+495\tindividual\t[名] ①個人，個体 [形] ②個人の，個々の
+496\tofficial\t[名] ①役人，役員 [形] ②公式の
+497\timmigrant\t[名] （外国からの）移民
+498\tvolunteer\t[名] ①ボランティア [自] ②（to do）（～することを）進んで引き受ける
+499\tcontribute\t[自] （to ～）①（～に）貢献する ②（～の）一因となる [他] ③（A to B）（A）を（B に）寄付する，提供する
+500\tabolish\t[他] ～を廃止する
+501\timpose\t[他] （A on B）（A）を（B に）課す，押しつける
+502\taccess\t[名] ① 利用する権利 ②（場所への）接近方法
+503\tduty\t[名] ① 義務 ②関税
+504\tcompulsory\t[形] ①義務的な ②規定の
+505\tresponsible\t[形] ①（人が主語）責任がある ②（物が主語）原因となっている
+506\tpolicy\t[名] ①政策 ②方針 ③保険契約，約款
+507\telect\t[他] ～を（選挙で）選ぶ
+508\tindustry\t[名] ①工業 ②（the ～ industry）産業，業界 ③ 勤勉
+509\tincome\t[名] 収入
+510\tprofit\t[名] 利益，利潤
+511\ttax\t[名] 税金（〈米〉→〈可算〉 〈英〉→〈不可算〉）
+512\texpense\t[名] ①費用，経費 ②（at the － of ～）（～を）犠牲（にして）
+513\tdebt\t[名] 借金
+514\tdeposit\t[名] ①預金 ②頭金，保証金 ③埋蔵物 [他] ④ ～を預ける
+515\tcharge\t[名] ①料金 ②責任，管理 ③（against ～）（～に対する）非難，告訴 [他] ④～を請求する ⑤～を告訴する ⑥～を充電する
+516\twage\t[名] ①賃金 [他] ②（闘争，運動など）を行う
+517\trecession\t[名] 不況，不景気
+518\tconsume\t[他] ～を消費する
+519\twaste\t[他] ①～を浪費する [名] ②浪費，無駄 ③廃棄物〈不可算〉
+520\tinvest\t[他] ①（A in B）（A）を（B に）投資する ②（A with B）（A）に（B を）与える
+521\timport\t[他] ①～を輸入する [名] ②輸入，輸入品
+522\tfinancial\t[形] 財政的な，金銭的な
+523\thire\t[他] ①～を（一時的に）雇う ②（金を払って短期間）～を借りる
+524\temploy\t[他] ①（人）を雇う ②（物，事）を用いる
+525\tresign\t[自] ①（as ～）（～を）辞職する [他] ②（地位など）を辞める
+526\tqualify\t[自] ①（for ～）（～の）資格がある ②（as ～）（～としての）資格を得る [他] ③～に資格を与える
+527\tassign\t[他] ①～を割り当てる ②～を配属する
+528\toccupation\t[名] ①職業〈可算〉 ②占有，占領〈不可算〉
+529\tcareer\t[名] ①職業 ②経歴
+530\tprofession\t[名] ①（専門的な）職業 ②（the －）同業者集団
+531\tunemployment\t[名] ①失業 ②失業率（＝－rate），失業者数 （① ② ともに〈不可算〉）
+532\tdocument\t[名] ①書類，資料 [他] ②～を記録する
+533\tdepartment\t[名] ①（組織の）部門，課 ②（大学の）学科 ③（米国などの）省
+534\tbranch\t[名] ①支店，支局 ②（学問の）部門 ③枝
+535\tretail\t[名] ①小売り〈不可算〉 [自] ②小売りされている
+536\tsystem\t[名] ①組織，制度 ②体系 （①②ともに〈可算〉）
+537\tstructure\t[名] 構造
+538\tarchitecture\t[名] 建築（様式）〈不可算〉
+539\tconstruction\t[名] 建設〈不可算〉
+540\tfunction\t[名] ①機能 [自] ②機能する
+541\tsurface\t[名] ①表面 [自] ②表面化する
+542\taspect\t[名] 側面
+543\tedge\t[名] ①端 ②（ナイフなどの）刃 ③優位
+544\tconsist\t[自] ①（of ～）（～で）構成されている ②（in ～）（～に）ある
+545\tcompose\t[他] ①～を構成する，組み立てる ②～を作曲［作文］する ③～を落ち着かせる
+546\tattach\t[他] ①～をくっつける，添付する ②～に愛着を持たせる
+547\tconnect\t[他] ①～をつなげる ②～を関連づける [自] ③つながる
+548\trelate\t[他] ①（A to B）（A）を（B に）関連づける ②～を（順序立てて）話す [自] ③（to ～）（～の）気持ちがわかる
+549\tassociate\t[他] ①（A with B）（A）を（B と）関連づける，（A）から（B を）連想する [自] ②（with ～） （～と）付き合う [名] ③同僚，共同経営者
+550\tstick\t[他] ①～を貼り付ける ②（舌や脚）を出す [自] ③（to）（規則などを）守る，固執する
+551\tseparate\t[他] ①～を引き離す [形] ②別々の
+552\tthief\t[名] 泥棒
+553\tcrime\t[名] 犯罪
+554\tmotive\t[名] 動機
+555\tpunish\t[他] （（人）for ～）（人）を（～の理由で）罰する
+556\tviolate\t[他] ①（法律など）に違反する ②（権利など）を侵害する
+557\tlegal\t[形] ①合法の ②法律の，法的な
+558\tenemy\t[名] ①敵 ②（形容詞的に）敵の
+559\tcompete\t[自] ①競争する ②（in ～）（競技などに）参加する
+560\tdefeat\t[他] ①（相手）を打ち負かす [名] ②敗北
+561\tvictim\t[名] 犠牲者
+562\tobstacle\t[名]（to ～）（～に対する）障害〈可算〉
+563\tharm\t[名] ①害〈不可算〉 [他] ②～に害を与える
+564\tinvade\t[他] ①（プライバシーなど）を侵害する ②（国など）に侵入する，～を侵略する
+565\tendanger\t[他] ～を危険にさらす
+566\tinterrupt\t[他] ①～を中断する ②～を遮る [自] ③人の話を遮る
+567\tspoil\t[他] ①～を台無しにする ②（子ども）を甘やかす
+568\tspectator\t[名] 観客
+569\trelative\t[名] ①（家族も含めて）親戚 [形] ②相対的な
+570\tenter\t[他] ①～に入る ②～を入力する [自] ③（into ～）（ある段階などに）入る
+571\taccompany\t[他] ①（人が主語）～と一緒に行く ②（物が主語）～に伴う
+572\tdeparture\t[名] ①出発 ②逸脱
+573\tdestination\t[名] ①目的地 ②（tourist －）旅行先，観光地
+574\ttransportation\t[名] 交通機関〈不可算〉
+575\tvia\t[前] ①～経由で ②～によって
+576\tlead\t[自] ①（to ～）（～に）至る [他] ②（a ～ life）（～な生活）を送る ③（A to do）A に～させる [名] ④鉛，（シャーペンなどの）芯
+577\trise\t[自] ①上がる，昇る [名] ②上昇
+578\tlower\t[他] ～を下げる
+579\tflow\t[自] ①流れる [名] ②流れ
+580\tburst\t[自] ①破裂する，爆発する ②（慣用句で）突然～し始める
+581\tcrack\t[自] ①割れる，砕ける ②（パンと）音を出す [他] ③～を割る，砕く [名] ④割れ目
+582\tmelt\t[自] ①（固体が）溶ける [他] ②～を溶かす
+583\tprogress\t[名] ①進歩，前進 〈不可算〉 [自] ②進歩する，進む
+584\tadvance\t[名] ①進歩，前進 〈可算〉 [自] ②（軍隊などが）前進する，進歩する [形] ③事前の
+585\tdeal\t[自] ①（with～）（～を）扱う [名] ②取り引き
+586\thandle\t[他] ①～を扱う ②（手で）～を扱う，触れる [名] ③取っ手
+587\tcope\t[自] （with～）（～に）（うまく）対処する
+588\ttreat\t[他] ①（副詞を伴って）～を扱う ②（病人，病気）を治療する ③（A to B） （A） に（Bを）おごる [名] ④楽しみ
+589\tclue\t[名] （to ～）（～の）手がかり
+590\trestrict\t[他] ～を制限する
+591\tlimit\t[他] ①（数量，範囲）を制限する [名] ②制限
+592\tforbid\t[他] ～を禁じる
+593\tban\t[名] ①禁止〈可算〉 [他] ②～を禁止する
+594\trefuse\t[他] ①～を断る ②（to do）～するのを拒む
+595\treject\t[他] ①～を拒絶する ②（人）を除け者にする
+596\tpersuade\t[他] （A to do）（A）を説得して～させる
+597\tconvince\t[他] ①（A of B）（A）に （Bを）確信させる，（A that S V）（A）に（～を） 確信させる ②（A to do）（A）を説得して～させる
+598\tinspire\t[他] ①～を奮起させる，かき立てる ②（作品）に創作のヒントを与える
+599\tdiscourage\t[他] ～のやる気をなくさせる，落胆させる
+600\tpromote\t[他] ①～を促進する ②（be［get］－d to ～）（～に）出世［昇進］する
+601\texpand\t[自] ①拡大する，膨張する [他] ②～を拡大する，膨張させる
+602\textend\t[他] ①～を延長する，広げる [自] ②伸びる，広がる
+603\tbroaden\t[他] ①～を広げる [自] ②広がる
+604\tspread\t[他] ①～を広げる [自] ②広がる [名] ③広がり
+605\ttie\t[他] ①（荷物など）を縛る ②（ひも，ネクタイなど）を結ぶ [名] ③ネクタイ （＝necktie） ④（家族などの）きずな
+606\tbind\t[他] ～を結びつける，縛る
+607\tfasten\t[他] ①～を固定する ②（ボタンなど）をかける，留める
+608\tfix\t[他] ①～を固定する ②～を修理する ③（主に 〈米〉）（食事，飲み物）を作る
+609\tinstall\t[他] ①（機械など）を設置する ②～をインストールする
+610\tresist\t[他] ①～を我慢する ②～に抵抗する
+611\tobey\t[他] ～に従う
+612\tengage\t[自] ①従事する [他] ②（関心，注意など）を引く
+613\tbump\t[自] （into～）①（～に）ぶつかる ②（～に）偶然出会う
+614\tcrash\t[自] ①激突する ②（飛行機が）墜落する [名] ③激突，墜落
+615\tbend\t[自] ①身をかがめる [他] ②～を曲げる [名] ③（道の）カーブ
+616\thug\t[他] ①（人）を （愛情こめて）抱きしめる [名] ②抱擁
+617\tstare\t[自] ①（at ～）（～を）じっと見つめる [名] ②凝視
+618\tgaze\t[自] ①（at［on］～）（～を）見つめる [名] ②視線，凝視
+619\tglance\t[自] ①ちらりと見る [名] ②ちらりと見ること
+620\tglimpse\t[他] ①～がちらりと見える [名] ②ちらりと見えること
+621\tstretch\t[他] ①（手足や体）を伸ばす，広げる [自] ②伸ばす，広がる [名] ③（ひと続きの）広がり
+622\tstumble\t[自] ①つまずく ②（across［into］～）（～に）偶然出会う
+623\tpress\t[他] ①～を（強く）押す ②～を押しつける，勧める [名] ③（the －）報道機関，出版
+624\tdrag\t[他] ～を（ずるずると）引きずる
+625\tlean\t[自] ①（against［on］～）（～に）寄りかかる ②（forward）身を乗り出す [形] ③（健康的に）痩せている
+626\tscratch\t[他] ①～をひっかく，かく [名] ②ひっかき傷
+627\tbow\t[自] ①おじぎする [名] ②おじぎ
+628\tnod\t[自] ①うなずく ②（off）うたた寝する [名] ③うなずき，会釈
+629\tsigh\t[自] ①ため息をつく [名] ②ため息
+630\tyawn\t[自] ①あくびをする [名] ②あくび
+631\tbury\t[他] ①～を埋める ②～を埋葬する
+632\tperform\t[他] ①～を遂行する ②～を演じる，演奏する [自] ③（副詞を伴い）やる
+633\tadopt\t[他] ①～を採用する ②～を養子にする
+634\tescape\t[自] ①（from ～）（～から）逃れる [他] ②～を避ける [名] ③逃亡
+635\tscatter\t[他] ①～をまき散らす [自] ②（群衆などが）散る
+636\tfold\t[他] ①～を折る ②（up）～を折りたたむ ③（腕）を組む [自] ④折りたためる
+637\thang\t[他] ①～を掛ける ② ～を絞首刑にする [自] ③ぶら下がる
+638\trelease\t[他] ①～を解放する ②（映画など）を発表する，出す ③（ガスなど）を放出する [名] ④解放，発売
+639\tstrike\t[他] ①～を打つ ②（災害が）～を襲う ③（考えが人）に思い浮かぶ ④（A as B）（A）に（B という）印象を与える [名] ⑤ストライキ
+640\tbeat\t[他] ①～を打つ ②～に勝つ
+641\tprotect\t[他] ～を守る，保護する
+642\ttwist\t[他] ①～を（ねじ）曲げる ②（体の一部）をひねる，ねんざする
+643\tstir\t[他] ①（液体など）を混ぜる ②（up ～）（感情など）を呼び覚ます
+644\tshake\t[他] ①～を振る ②～を揺さぶる [自] ③（恐怖，寒さで）震える
+645\tburn\t[自] ①焼ける [他] ②～を燃やす，（CD など）を複製する
+646\tskip\t[他] ～をサボる，抜かす
+647\texpose\t[他] ①～をさらす ②（秘密，犯罪など）を暴露する
+648\tdip\t[他] ①～を（ちょっと）つける，浸す ②～を少し下げる
+649\tpolish\t[他] ～を磨く
+650\tcheat\t[自] ①ごまかす [他] ②～をだます
+651\tattend\t[他] ① ～に出席する，通う [自] ②（to ～）（～に）注意を向ける ③（to ～）（～を）世話する
+652\tparticipate\t[自] （in ～）（～に）参加する
+653\timitate\t[他] ～をまねる
+654\texist\t[自] 存在する
+655\tarise\t[自] 生じる
+656\toccur\t[自] ①生じる ②（to （人））（考えなどが（人）に）思いつく
+657\tgenerate\t[他] （電気，利益など）を生み出す
+658\tinvolve\t[他] ①（be －d in ～）（事件などに）巻き込まれる ②（be －d in ～）（子育てなどに）参加する ③～を伴う
+659\trequire\t[他] ～を必要とする
+660\tcounterpart\t[名] （to ～）（～に）対応する［（～と）同等の］人［物，事］
+661\tmaintain\t[他] ①～を維持する ②（that S V）（～）を（強く）主張する
+662\tlast\t[自] ①（時間的に）続く ②（服などが）長持ちする [形] （the last ～）③この前の～，最後の～ ④もっとも～でない [名] ⑤（at －）ついに
+663\tpersist\t[自] ①持続する，残る ②（in［with］～）（～を）貫く，（～に）固執する
+664\tgain\t[他] ①～を増す ②～を得る [名] ③利益，増加
+665\tobtain\t[他] （資格，許可，情報など）を得る
+666\tacquire\t[他] ①～を習得する ②～を獲得する ③～を買収する
+667\texamine\t[他] ①～を調査する ②～を検査する
+668\tsearch\t[他] ①（A for B） （B（物）を求めてA（場所））を捜す [名] ②捜索，調査
+669\treunion\t[名] ①同窓会 ②再会
+670\tscholarship\t[名] ①奨学金〈可算〉 ②（人文科学の）学識〈不可算〉
+671\tlogic\t[名] 論理（学）
+672\tinstruction\t[名] （通例－s）指示
+673\tdetermine\t[他] ①～を決める，～に大きく影響する ②（be －d to do）～することを決意している ③（原因など）を特定する
+674\tconclude\t[他] ①（that S V）～と結論を下す ②～を終わりにする
+675\tdistinguish\t[他] ～を区別する
+676\tclassify\t[他] ～を分類する
+677\testimate\t[他] ①～を推定する，見積もる [名] ②（for ～）（～の）見積もり
+678\tselect\t[他] ①（注意深く）～を選ぶ，精選する [形] ②えり抜きの
+679\torganize\t[他] ①（考えなど）をまとめる ②～を組織化する，取りまとめる
+680\trecognize\t[他] ①（知り合いなど）が誰だかわかる ②（that S V）～を認識する
+681\tsuppose\t[他] ①（be －d to do）～することになっている ②～と思う，仮定する
+682\tassume\t[他] ①～と思い込む，決めつける ②～を引き受ける
+683\tcare\t[自] ①（否定文で）気にする ②世話をする [名] ③世話，心配
+684\tdoubt\t[他] ①～を疑う ②（that S V）～とは思わない [名] ③疑い
+685\tnotice\t[他] ①～に気がついている [名] ②通知，掲示，注意
+686\taware\t[形] 気づいている
+687\tconscious\t[形] ①意識している，気づいている ②意識がある
+688\tconcerned\t[形] ①（with［about］～）（～に）関心を持っている，重視している ②（with ～）（～を）扱っている ③（about［for］～）（～を）心配している
+689\tregard\t[他] ①（A as B）（A）を（B と）みなす ②（副詞を伴い）～を評価する [名] ③（in －）点 ④（－s）よろしくという挨拶
+690\tcommit\t[他] ①（oneself to ～ / be －ed to ～）～に専念する ②（A to B） （A）を（B に）委ねる，充てる ③（犯罪など）を犯す
+691\tmemorize\t[他] ～を暗記する
+692\tapprove\t[自] ①（of ～）（～を）認める，承認する [他] ②～を承認する
+693\tforgive\t[他] （人，過ち）を許す
+694\tgrant\t[他] ①～を認める ②（権利など）を与える [名] ③交付，補助金
+695\trecall\t[他] ①～を思い出す ②（商品）を回収する，リコールする
+696\tabandon\t[他] ～を捨てる，放棄する
+697\trid\t[名] （get － of ～）①（不要品）を処分する ②～を取り除く
+698\teliminate\t[他] ①（不要な人，物，事）を排除する ②（be －d）敗退する
+699\trelieve\t[他] ①～を取り除く ②～を安心させる
+700\tremove\t[他] ①～を取り除く，取り去る ②（衣服）を脱ぐ
+701\tresource\t[名] ①（－s）（石油などの）資源，（人，国の）財産 ②（－s）（困難に立ち向かう）力量 ③（万一の頼みの）手段
+702\tconservation\t[名] 保護
+703\tpreserve\t[他] ①（自然など）を保護する ②（景観，平和，食品など）を保つ
+704\tdisaster\t[名] ①災害 ②大失敗
+705\tplanet\t[名] ①惑星 ②（the －）地球
+706\tenvironment\t[名] 環境，周囲（の状況）
+707\thorizon\t[名] ①水平線，地平線 ②（－s）視野
+708\tagriculture\t[名] 農業〈不可算〉
+709\tcrop\t[名] ①作物 ②収穫（高） [自] ③（up）生じる
+710\tsoil\t[名] 土，土壌
+711\tweed\t[名] ①雑草，海草 [他] ②～の雑草を抜く
+712\tdrown\t[自] 溺れ死ぬ
+713\tleak\t[自] ①漏れる [他] ②～を漏らす [名] ③漏れ
+714\tclimate\t[名] ①気候 ②（政治，経済，文化の）状況
+715\tatmosphere\t[名] ①（the－）大気 ②雰囲気 ③（the（ Earth's）－）大気圏
+716\tforecast\t[名] ①予報 [他] ②～を予報する
+717\tthermometer\t[名] ①温度計，寒暖計 ②体温計
+718\thumid\t[形] 湿気が多い
+719\ttropical\t[形] 熱帯の
+720\tsolar\t[形] 太陽の
+721\tmosquito\t[名] 蚊
+722\tspecies\t[名] 種〈単複同形〉
+723\textinct\t[形] 絶滅した
+724\tfeed\t[他] ①～にえさを与える ②（子どもなど）を養う
+725\tenergetic\t[形] （人，運動などが）活発な
+726\tgreedy\t[形] 貪欲な
+727\tbrave\t[形] 勇敢な
+728\tgenerous\t[形] 気前のよい
+729\tintellectual\t[形] 知的な
+730\tcurious\t[形] ①（人が主語）好奇心が強い ②（物が主語）奇妙な，好奇心をそそる
+731\timaginative\t[形] 想像力豊かな
+732\ttalkative\t[形] おしゃべりの
+733\tafford\t[他] ①（can －）～する余裕がある ②（SVO1O2）（O1に）O2を与える
+734\teager\t[形] 熱心な
+735\tselfish\t[形] 利己的な，自分勝手な
+736\taggressive\t[形] ①攻撃的な ②積極的な
+737\tcruel\t[形] 残酷な
+738\taddicted\t[形] ～の中毒になっている
+739\tstubborn\t[形] 頑固な
+740\tearnest\t[形] ①真面目な [名] ②（in －）真面目（に）
+741\tbold\t[形] 大胆な
+742\tguilty\t[形] ①申し訳なく思う，罪の意識がある ②（of ～）（～の）罪を犯した
+743\tinnocent\t[形] ①（of ～）（～に関して）無実の ②無邪気な
+744\tsincere\t[形] ①（心から）誠実な ②（言動が）心からの，偽りのない
+745\tmodest\t[形] ①（人が）謙虚な ②（物が）大きくない，高くない
+746\tstupid\t[形] ばかな
+747\tindifferent\t[形] 無関心で
+748\tpunctual\t[形] （約束などの）時間を守る
+749\tcoward\t[名] 臆病者
+750\tprecise\t[形] 正確な
+751\taccurate\t[形] 正確な
+752\tproper\t[形] 適切な
+753\ttidy\t[形] ①（主に〈英〉）きちんとした，整然とした [他] ②～を整頓する
+754\tneat\t[形] きちんとした
+755\tefficient\t[形] ①能率的な，無駄がない ②（人が）有能な
+756\treasonable\t[形] ①理にかなった ②（値段が）手ごろな
+757\tsignificant\t[形] ①重要な ②（数量，増減，相違などが）かなりの
+758\tprecious\t[形] ①（時間や命などが）貴重な ②（宝石などが）高価な
+759\tessential\t[形] ①不可欠な [名] ②（－s）不可欠なもの
+760\tfundamental\t[形] ①根本的な，基本的な [名] ②（－s）基本事項
+761\tcritical\t[形] ①重大な，危機的な状況の ②批判的な
+762\tserious\t[形] ①深刻な ②（人が）真剣な，本気の
+763\tcomplex\t[形] ①複雑な [名] ②複合体（の建物） ③強迫観念
+764\tcomplicated\t[形] 複雑な
+765\tdelicate\t[形] ①繊細な，微妙な ②（人が）虚弱な
+766\tplain\t[形] ①明白な，わかりやすい ②質素な [名] ③平野，原野
+767\tobvious\t[形] 明白な
+768\tremarkable\t[形] 注目すべき，すばらしい
+769\toutstanding\t[形] 傑出した，目立った
+770\tvarious\t[形] さまざまな
+771\tdiverse\t[形] 多様な
+772\tsort\t[名] ①種（類） ②（副詞的に）（－ of）多少 [他] ③～を分類する
+773\tfancy\t[形] ①高級な [他] ②〈英〉～が欲しい，～したい
+774\tmarvelous\t[形] 驚くべき
+775\tfabulous\t[形] ①とても素敵な ②莫大な
+776\tactive\t[形] 積極的な，活発な
+777\tpositive\t[形] ①前向きな，積極的な ②確信している
+778\tpure\t[形] ①純粋な ②（水，空気が）澄んだ
+779\tsteady\t[形] 着実な，一定の
+780\tflexible\t[形] 柔軟な，融通のきく
+781\tripe\t[形] 熟した
+782\tmature\t[形] ①成熟した，熟成した [自] ②成熟する，熟成する
+783\tstable\t[形] ①安定した [名] ②馬小屋，きゅう舎
+784\tnegative\t[形] 否定的な，否定の
+785\tvague\t[形] 曖昧な，漠然とした
+786\tweird\t[形] 変な
+787\trough\t[形] ①（表面が）粗い ②おおざっぱな ③（海，天候などが）荒れている
+788\tsevere\t[形] ①（天候，批判，罰則などが）厳しい ②（けが，問題などが）ひどい
+789\tpassive\t[形] 受動的な，消極的な
+790\tvain\t[形] ①（in －）無駄に ②（努力などが）無駄な ③うぬぼれの強い
+791\tfake\t[形] ①偽の，偽造の [名]②偽造品
+792\trisky\t[形] 危険な，危うい
+793\tabsurd\t[形] ばかげた
+794\todd\t[形] ①奇妙な ②奇数の ③半端な，雑多な [名] ④〈英〉（the －s）可能性
+795\tcontrast\t[名] ①対比 [他] ②～を対比する [自]③対照をなす
+796\tvalid\t[形] ①（理由，主張などが）妥当な，正当な ②（切符などが）有効な
+797\tavailable\t[形] ①手に入り，利用できる ②（人の予定が）空いている
+798\tcasual\t[形] ①気楽な ②ふとした，何気ない
+799\trare\t[形] 珍しい
+800\tpractical\t[形] ①（人，知識が）現実的な，実際の ②（発明，道具などが）実用的な，実践的な
+801\tbrand-new\t[形] 新品の，真新しい
+802\trapid\t[形] ①急速な [名] ②（－s）急流
+803\turgent\t[形] 緊急の，差し迫った
+804\tsharp\t[形] ①（変化，方向転換などが）急激な ②（言葉が）きつい ③（刃物，感覚，人などが）鋭い [副] ④（時刻が）きっちりで
+805\tcalm\t[形] ①落ち着いた [自] ②落ち着く [他] ③～を落ち着かせる
+806\tshallow\t[形] ①浅い ②（人，言動などが）浅はかな
+807\tbare\t[形] ①むき出しの ②最低限の
+808\tnaked\t[形] （人が）裸の，むき出しの
+809\tindependent\t[形] ①独立した，無所属の [名] ②無所属の人
+810\ttense\t[形] ①張り詰めた ②（人が）緊張した [名] ③時制
+811\tbroad\t[形] 幅広い
+812\tnarrow\t[形] ①狭い [他] ②～を狭くする，細める
+813\tvacant\t[形] 空いている，使用されていない
+814\tvivid\t[形] ①（記憶，描写などが）鮮明な ②（色が）鮮明な
+815\tmutual\t[形] ①（感情，行為が）相互の ②（友だち，趣味などが）共通の
+816\tawkward\t[形] ①ぎこちない ②気まずい ③扱いにくい
+817\tobjective\t[形] ①客観的な [名] ②目標
+818\tmanual\t[形] ①手を使う，身体を使う ②手動の [名] ③手引き書
+819\talike\t[形] ①似ている [副] ②（A and B －）（A もB も）同様に
+820\ttend\t[自] （to do）～する傾向にある
+821\tdeserve\t[他] ～に値する
+822\tfragment\t[名] 破片〈可算〉
+823\tease\t[名] ①簡単さ [他] ②（痛み，心配など）を和らげる，楽にする
+824\trange\t[名] ①範囲 [自] ②（from A to B）（A からB の）範囲に及ぶ
+825\tscale\t[名] ①規模 ②（－s）体重計 ③うろこ
+826\tunique\t[形] ①（to ～）（～に）特有の，独自の ②独特の
+827\tparticular\t[形] ①ある特定の，特有の ②（about ～）（～の）好みがうるさい [名] ③（in －）特に（＝particularly）
+828\tgeneral\t[形] ①一般的な，全体の [名] ②大将，将軍
+829\tordinary\t[形] 平凡な，ふつうの
+830\ttypical\t[形] 典型的な
+831\taccount\t[自] （for ～）①（割合を）占める ②（～の原因を）説明する [名] ③説明 ④口座
+832\tcalculate\t[他] ～を計算する
+833\tmeasure\t[他] ①～を測る [自] ②～の寸法がある [名] ③（－s）手段
+834\tsplit\t[他] ①～を割る ②～を分裂させる [自] ③分裂する [名] ④分裂，裂け目，割れ目
+835\tvolume\t[名] ①容積，体積 ②ボリューム，音量 ③（全集などの）1巻
+836\tproportion\t[名] ①比率 ②部分 ③（－s）規模，大きさ
+837\tdozen\t[名] ①ダース ②（－s of ～）数十の～
+838\tamount\t[名] ①量 [自] （to ～）②（合計が）～に達する ③結局～になる
+839\tmass\t[名] ①大量 ②（the －es）大衆 ③かたまり ④質量 ⑤（M－）ミサ
+840\tshortage\t[名] 不足〈可算〉
+841\tenormous\t[形] 莫大な，巨大な
+842\tspare\t[形] ①余分な，予備の [他] ②（時間やお金，労力）を割く ③～を惜しむ
+843\tarrange\t[他] ①～を手配する ②～を整理する
+844\tadapt\t[自] ①適応する [他] ②～を適応させる
+845\tmatch\t[他] ①～と調和する ②～に匹敵する [名] ③釣り合う人［物］，好敵手
+846\tfit\t[他] ①（サイズが人）に合う [形] ②健康な ③（to do）（～するのに）適した
+847\temergency\t[名] ①緊急事態 ②（形容詞的に）緊急の
+848\toccasion\t[名] ①場合 ②行事，祝い事
+849\tcircumstance\t[名] （通例 －s）状況，事情
+850\tincident\t[名] （主に不快な）出来事
+851\tcurrent\t[形] ①最新の，今の ②流通して [名] ③流れ，風潮
+852\ttemporary\t[形] 一時的な
+853\tpermanent\t[形] 永久的な
+854\tprevious\t[形] （時間，順序で）前の，以前の
+855\tformer\t[名] ①（the －）前者 [形] ②前任の
+856\tannual\t[形] ①年に1度の ②1年間の
+857\tcontemporary\t[形] ①現代の ②同時代の [名] ③同時代の人
+858\tlately\t[副] 最近
+859\timmediately\t[副] すぐに
+860\tsupply\t[他] ①～を供給する [名] ②供給
+861\treplace\t[他] ①～に取って代わる ②（A with B）（A）を（B に）取り替える
+862\texchange\t[他] ①～を交換する [名] ②交換
+863\tsubstitute\t[他] ①（A for B） （B の）代わりに（A）を用いる [自] ②（for ～）（～の）代わりになる，代わりをする [形] ③代わりの [名] ④（for ～）（～の）代用品，代理人
+864\tsubmit\t[他] ①（願書，辞表など）を提出する [自] ②（to ～）（～に）服従する
+865\talternative\t[名] ①（to ～）（～の）代わりのもの ②選択肢 [形] ③代わりの
+866\tdeliver\t[他] ①～を配達する ②（演説など）をする
+867\tenclose\t[他] ①～を同封する ②～を囲む，閉じ込める
+868\tenvelope\t[名] 封筒
+869\ttrick\t[名] ①（悪意のない）いたずら ②（巧妙な）手口，策略 ③芸，手品 ④（of ～）秘けつ [他] ⑤～をだます
+870\tload\t[名] ①荷（物）〈可算〉 [他] ②（A with B）（A）に（B を）積む
+871\tcontent\t[名] ①中身，内容 [形] ②（with ～）（～に）満足して
+872\troutine\t[名] ①日課，決まり切った仕事 [形] ②日課の
+873\thousehold\t[名] ①（集合的に）所帯，家庭〈可算〉 [形] ②家庭の
+874\tgood\t[名] ①（－s）商品 ②利益 [形] ③（a － many ～）かなりの
+875\tluxury\t[名] ①高級（品），ぜいたく品 ②（形容詞的に）豪華な，ぜいたくな
+876\tcredit\t[名] ①（－ card）クレジットカード ②功績，手柄 ③（大学の）単位 [他] ④～の功績を認める
+877\tquestionnaire\t[名] アンケート
+878\treservation\t[名] ①予約 ②慎重な姿勢
+879\tapplause\t[名] 拍手〈不可算〉
+880\tfuss\t[名] 大騒ぎ
+881\treward\t[名] ①報酬，褒美 ，懸賞金 [他] ②～に褒美を与える，報いる
+882\tfarewell\t[名] 別れ（のあいさつ）
+883\treception\t[名] ①もてなし，歓迎会 ②（ホテルの）フロント ③受信状況
+884\thospitality\t[名] もてなし，歓迎
+885\tportion\t[名] ①（食事の）1盛り ②（食堂などでの）1人前 ③一部
+886\tlaundry\t[名] ①〈米〉洗濯 ②〈米〉洗濯物 ③クリーニング店（＝a cleaner's）
+887\tstain\t[名] ①シミ，汚れ [他] ②～にシミをつける，～を汚す
+888\tdye\t[他] ①～を染める [名] ②染料
+889\toutlet\t[名] ①（電気の）コンセント ②（販売）店 ③（感情などの）はけ口
+890\tnap\t[名] ①昼寝，仮眠 [自] ②昼寝をする，仮眠をとる
+891\twake\t[自] ①目が覚める [他] ②（眠っている人）を起こす
+892\tvending machine\t[名] 自動販売機
+893\tgrocery\t[名] ①食料雑貨店 ②（-ies）食料雑貨類
+894\tappointment\t[名] ①（病院などの）予約，（面会の）約束 ②（役職などの）任命，指名
+895\tconsult\t[他] ①～に相談する ②（辞書）を引く [自] ③（with ～）（～に）相談する
+896\tregister\t[他] ①～を登録する，記録する [自] ②（for ～）（授業などに）登録する ③（ホテルなどで）記帳する [名] ④登録（票），登録簿
+897\tsubscribe\t[自] ①（to ～）（～を）定期購読する，加入している ②（主に否定文で）（to ～）（考えなどを）支持する
+898\tguarantee\t[他] ①～を保証する [名] ②保証（期間）
+899\twipe\t[他] ①～を拭く ②～を一掃する，壊滅させる
+900\tsweep\t[他] ①（床，地面）を掃く ②（風，波などが）～を押し流す
+901\ttransfer\t[自] ①（電車などを）乗り換える ②転勤［転校，移籍］する [他] ③（物，活動拠点など）を移す，～を転勤［転属］させる ④（銀行で）～を振り込む
+902\tdivorce\t[自] ①離婚する [他] ②～と離婚する [名] ③離婚
+903\tfate\t[名] 運命，宿命
+904\tdestiny\t[名] 運命
+905\tflavor\t[名] 風味，味〈可算〉
+906\tperfume\t[名] ①香り ②香水
+907\tingredient\t[名] ①（料理などの）材料 ②（何かを達成するための）要因 ③成分
+908\ttender\t[形] ①（肉などが）柔らかい ②（愛情があり）優しい ③（皮膚などが）弱い
+909\tbitter\t[形] ①苦い，つらい ②憤慨して
+910\taisle\t[名] 通路
+911\ttrack\t[名] ①足跡，小道 ②（鉄道の）線路，プラットホーム [他] ③～を追跡する
+912\tdistrict\t[名] 地区
+913\tfacility\t[名] ①施設，設備 ②能力，器用さ
+914\tbasement\t[名] 地下（室）
+915\theight\t[名] ①高さ ②高い所 ③最盛期
+916\tdistant\t[形] 遠い
+917\tremote\t[形] ①（地理的に）へんぴな ②（時間，関係などが）遠い
+918\tlocate\t[他] ①（be －d）～に位置している，ある ②～の場所を見つける
+919\toccupy\t[他] ～を占める
+920\tsurround\t[他] ～を取り囲む，包囲する
+921\tclassical\t[形] ①（音楽，バレエ，ダンスなどで）クラシックの ②古典的な
+922\tcivilization\t[名] 文明
+923\theritage\t[名] 遺産〈不可算〉
+924\tscript\t[名] ①台本，脚本 ②（ある言語の）文字 ③（手書きの）文字
+925\ttale\t[名] 話
+926\tliterature\t[名] ①文学 ②文献 （①②ともに〈不可算〉）
+927\ttragedy\t[名] 悲劇〈可算〉
+928\tpoetry\t[名] 詩〈不可算〉
+929\tbiography\t[名] 伝記
+930\tterm\t[名] ①用語，言葉 ②（long［short］などを伴い）期間，学期，任期 ③（be on ～ －s）（～の）間柄（である） ④（－s）（契約などの）条件
+931\tproverb\t[名] ことわざ
+932\tfluent\t[形] 流暢な
+933\ttranslate\t[他] ①～を翻訳する [自] ②（into ～）（結果として）～に変わる
+934\tdefine\t[他] ①～を定義する ②～を規定する
+935\tinterpret\t[他] ①～を解釈する ②～を通訳する [自] ③通訳する
+936\tquote\t[他] ①～を引用する ② ～に価格を提示する
+937\tliterally\t[副] 文字どおりに
+938\tindicate\t[他] ①（データなどが）～を示す ②～を指し示す
+939\treveal\t[他] ～を明らかにする，暴露する
+940\tannounce\t[他] ～を発表する
+941\tbroadcast\t[他] ①～を放送する [名] ②（ 1 回の）放送
+942\tprove\t[他] ①～を証明する ②（to be ～）～だとわかる
+943\tadvertise\t[他] ～を宣伝する
+944\tseek\t[他] ①～を求める ②（to do）～しようと努める
+945\tentertain\t[他] ①～を楽しませる ② ～をもてなす
+946\tamuse\t[他] ～を楽しませる
+947\tattract\t[他] ～を引きつける，魅了する
+948\tfascinate\t[他] ～を魅了する，～にとても興味をもたせる
+949\tabsorb\t[他] ①（be －ed in ～）～に没頭する ②～を吸収する
+950\tfond\t[形] ①好きで ② 懐かしい
+951\tscare\t[他] ～をおびえさせる
+952\talarm\t[他] ①～をぎょっとさせる [名] ② 恐怖，不安
+953\tamaze\t[他] ～を驚かせる
+954\tirritate\t[他] （長期にわたって）～をいらいらさせる
+955\tpuzzle\t[他] ①～を当惑させる [名] ②難問，パズル
+956\tconfuse\t[他] ① ～を混乱させる，困惑させる ②（A with［and］ B） （A）を（Bと）混同する
+957\tbore\t[他] ～をうんざりさせる，退屈させる
+958\tfrustrate\t[他] ① ～を欲求不満にさせる ②（計画など）を挫折させる
+959\tdisappoint\t[他] ～を失望させる
+960\tembarrass\t[他] ～に恥ずかしい思いをさせる，困惑させる
+961\tashamed\t[形] 恥ずかしい
+962\tuneasy\t[形] 不安な，胸騒ぎがする
+963\thesitate\t[自] ためらう
+964\treluctant\t[形] （to do）（～するのは）気が進まない
+965\ttremble\t[自] 震える
+966\tboast\t[自] ①自慢する [他] ②（場所や組織が）～を誇りにしている
+967\tjealous\t[形] （of ～）（～に）嫉妬した
+968\tenvy\t[他] ①～を羨ましく思う [名] ② 羨望
+969\tyell\t[自] ①叫ぶ，大声をあげる [名] ②叫び，わめき声
+970\trespect\t[他] ①（人）を尊敬する ②（物）を尊重する [名] ③（for ～）（～に対する）尊敬，尊重 ④（in －）点
+971\tdespair\t[名] 絶望
+972\temotion\t[名] （特に強い）感情〈可算〉
+973\tsympathy\t[名] ①同情 ② 共感
+974\tshame\t[名] ①残念なこと ②恥
+975\tambition\t[名] （強い）願望，野望
+976\tconfidence\t[名] ①自信 ②（in ～）（～に対する）信頼
+77\tcourage\t[名] 勇気
+978\tignore\t[他] （人，物）を無視する
+979\towe\t[他] （A to B） ①（A）は（B の）おかげだ ②（A）を（B に）借りている
+980\tfear\t[名] ①恐怖 [他] ② ～を恐れる ③ ～を心配する
+981\tmethod\t[名] 方法
+982\tmedium\t[名] ①（情報伝達）手段，媒体，メディア [形] ② 中間の
+983\tmeans\t[名] ①手段〈単複同形〉 ②（特定な表現で）財産，収入
+984\textent\t[名] 程度
+985\textremely\t[副] 極度に，非常に
+986\ttotal\t[形] ①全体の ②（a －）まったくの [名] ③合計
+987\tlargely\t[副] ①大部分は ②主に
+988\tmoderate\t[形] 適度な，節度のある
+989\tsomewhat\t[副] いくぶん
+990\tsubtle\t[形] かすかな
+991\tpossibly\t[副] ①ひょっとすると ②（cannot －）どうしても（～できない）
+992\teventually\t[副] 最終的に，ついに
+993\tnecessarily\t[副] （not －）必ずしも（～ない）
+994\tfrankly\t[副] 率直に
+995\tironically\t[副] 皮肉なことに
+996\tmoreover\t[副] その上
+997\totherwise\t[副] ①さもなければ ② ほかの点では ③ ほかの方法で
+998\tregardless\t[副] （of ～）（～とは）無関係に
+999\tworth\t[前] ①～の価値がある ②（－ doing）（～する）価値がある [名] ③ 価値，（～）相当
+1000\taccording to\t[前] ①（調査，人の話など）によれば ②（能力など）に応じて
+1001\tpropose\t[他] ①～を提案する [自] ②（to ～）（～に）結婚を申し込む
+1002\tdemand\t[他] ①～を（強く）要求する [名] ②（for ～）（～への）要求，需要
+1003\tdesire\t[名] ①願望 [他] ②～を強く望む
+1004\tdismiss\t[他] ①（意見や考えなど）を退ける ②～を解雇する
+1005\tbless\t[他] ～を祝福する
+1006\tglory\t[名] 栄光
+1007\tcompliment\t[名] ①褒め言葉，賛辞 [他] ②～を褒める
+1008\tfeast\t[名] ①宴会，祝宴 ②とても楽しいこと，喜ばせるもの
+1009\tdeclare\t[他] ①～を宣言する ②（税関や税務署で）～を申告する
+1010\tdemonstrate\t[他] ～を（はっきり）示す，実演する
+1011\thighlight\t[他] ①～を強調する [名] ②呼び物，目玉商品，ハイライト
+1012\timply\t[他] （暗に）～を意味する，ほのめかす
+1013\trecite\t[他] ～を暗唱する
+1014\tray\t[名] ①光線 ②放射線 ③（a － of）一縷の，わずかな
+1015\tradiation\t[名] 放射線
+1016\tlaboratory\t[名] 研究室，研究所
+1017\toxygen\t[名] 酸素
+1018\tmolecule\t[名] 分子
+1019\tcompound\t[名] ①化合物 [形] ②複合的な
+1020\ttissue\t[名] ①組織 ②ティッシュペーパー
+1021\tcell\t[名] ①細胞 ②電池 ③独房 （①②③いずれも〈可算〉)
+1022\tgene\t[名] 遺伝子〈可算〉
+1023\tsolid\t[形] ①固体の ②ぎっしり詰まった [名] ③固体
+1024\tsatellite\t[名] ①（月などの）衛星 ②人工衛星
+1025\torbit\t[名] ①軌道 [他] ②（惑星などが）～を周回する
+1026\tlaunch\t[他] ①（ロケットなど）を打ち上げる ②（運動，事業など）を始める [名] ③打ち上げ，開始，発売
+1027\tattempt\t[名] ①試み [他] ②（to do）（～しようと）試みる
+1028\tcapacity\t[名] ①能力 ②容量，収容力
+1029\tcapable\t[形] ①（of ～）（～する）力がある ②有能な
+1030\tattain\t[他] ①（人が主語）～を達成する ②（物，人が主語）～に到達する
+1031\tdesperate\t[形] ①必死の ②（状況が）絶望的な
+1032\tstruggle\t[自] ①苦闘する，もがく [名] ②苦闘，もがくこと〈可算〉
+1033\tdedicate\t[他] （A to B）（A）を（B に）ささげる
+1034\tpain\t[名] ①苦痛 ②（－s）苦労
+1035\tstrain\t[名] ①（心身の）負担，無理 [他] ②（目や筋肉など）を痛める
+1036\tremedy\t[名] ①治療法，治療薬 ②改善策，対策（① ② いずれも〈可算〉）
+1037\tfatigue\t[名] （ひどい）疲労〈不可算〉
+1038\tobesity\t[名] （病的な）肥満
+1039\tnursing\t[名] 看護
+1040\tterminal\t[形] ①（病気が）末期の [名] ②終着［始発］駅（の建物），ターミナルビル
+1041\tpregnant\t[形] 妊娠した
+1042\theal\t[他] ①～を治す [自] ②治る
+1043\tankle\t[名] 足首
+1044\tthumb\t[名] 親指
+1045\tforehead\t[名] 額，おでこ
+1046\tchin\t[名] 下あご，あごの先端
+1047\tchest\t[名] ①胸（部） ②（大きな木の）箱，密閉容器
+1048\tbreast\t[名] （主に女性の）胸，乳房
+1049\tlung\t[名] 肺〈可算〉
+1050\torgan\t[名] ①臓器，（動植物の）器官 ②（楽器）オルガン
+1051\tvision\t[名] ①視力，視野 ②未来像 ③未来を見通す力，先見の明
+1052\tskeleton\t[名] がい骨，骨格
+1053\tsensation\t[名] ①感覚 ②（説明し難い）感情
+1054\tcode\t[名] ①（服装などの）規定 ②暗号
+1055\tagenda\t[名] 議題，協議事項
+1056\tgender\t[名] 性，性別
+1057\tliberty\t[名] 自由
+1058\thumanity\t[名] ①（集合的に）人類 ②（the －ies）人文科学 ③人間性
+1059\tmankind\t[名] （集合的に）人類
+1060\tauthority\t[名] ①権威 ②権力 ③（－ies）当局
+1061\tjustice\t[名] 正義
+1062\tinsurance\t[名] 保険〈不可算〉
+1063\thardship\t[名] （主に経済的）苦難
+1064\tpoverty\t[名] 貧困〈不可算〉
+1065\tchaos\t[名] 大混乱，混沌〈不可算〉
+1066\tisolation\t[名] 孤立，分離，孤独感
+1067\tinteraction\t[名] ① 交流，やりとり ②相互作用
+1068\tregion\t[名] 地域
+1069\tproof\t[名] ①証拠，証明〈不可算〉 [形] ②（複合語で）～を防ぐ，～に耐える
+1070\tprinciple\t[名] ①原理，原則 ②主義，信念
+1071\torigin\t[名] 起源
+1072\tsetting\t[名] ①環境，状況 ②（小説，劇，機械などの）設定，舞台
+1073\tmonument\t[名] 記念碑，遺跡，史跡
+1074\tmission\t[名] ①任務，使命 ②使節団 ③（主にキリスト教の）布教（団）
+1075\tproject\t[名] ①計画，企画 [他] ②（予算など）を見積もる ③～を投影する
+1076\trevolution\t[名] 革命
+1077\tpension\t[名] 年金〈可算〉
+1078\tfound\t[他] ～を創立する
+1079\tcontract\t[名] ①契約 [他] ②～を契約する ③（病気）に感染する
+1080\tnegotiate\t[自] ①（with ～）（～と）交渉する [他] ②（交渉の上で，条件など）を取り決める
+1081\tcooperate\t[自] （with ～）（～と）協力する，（in ～）（～を）協力する
+1082\trestore\t[他] ①（治安など）を回復する ②（古い建物，絵など）を修復する
+1083\tconservative\t[形] 保守的な
+1084\taffair\t[名] ①（－s）情勢 ②（スキャンダラスな）事件 ③ 情事，浮気
+1085\tagency\t[名] ①（政府）機関 ②代理店
+1086\tcouncil\t[名] 議会
+1087\tkingdom\t[名] ①王国 ②（the ～ kingdom）～界，社会
+1088\trepublic\t[名] 共和国
+1089\tempire\t[名] 帝国
+1090\tsecurity\t[名] ①（国家などの）安全 ②防犯，防衛
+1091\taid\t[名] 援助，救援物資〈不可算〉
+1092\treform\t[名] 改革
+1093\tmayor\t[名] 市長
+1094\tminister\t[名] ①大臣 ②牧師
+1095\tpoll\t[名] ①（政治関連の）世論調査 ②投票 [他] ③（得票）を得る
+1096\tfortune\t[名] ①財産 ②運
+1097\tproperty\t[名] ①（主に集合的）財産，資産 ②（建物を含む）所有地 ③（物質の）特性
+1098\tfund\t[名] ①（－s）資金 ②基金 [他] ③～に資金を出す
+1099\tstock\t[名] ①株（式） ②在庫品，蓄え
+1100\tbankrupt\t[形] 倒産した，破産した
+1101\tlabor\t[名] ①労働 ②（集合的に）労働者 ③努力，陣痛
+1102\toverwork\t[自] ①働きすぎる [他] ②～を働かせすぎる，酷使する [名] ③過労
+1103\tfirm\t[名] ①会社 [形] ②（土台，信念などが）固い ③（体が）引き締まった
+1104\tunion\t[名] ①労働組合 ②合併 ③連邦
+1105\tadministration\t[名] ①経営，運営 ②行政 ③政権 （①②は〈不可算〉）
+1106\tsecretary\t[名] ①秘書 ②（米国の各省の）長官，事務局長
+1107\teditor\t[名] （新聞，雑誌などの）編集長，（書籍の）編集者
+1108\tclient\t[名] ①依頼人 ②（サービス業の）取引先
+1109\tcolleague\t[名] （from ～）（～の）同僚
+1110\tbasis\t[名] ①基礎，根拠 ②（on a ～ basis）（～を）基準（として）
+1111\telement\t[名] ①（最も重要な）要素，（化学の）元素 ②（the －s）自然の力，悪天候 ③（an － of ～）少しの～
+1112\tconstitute\t[他] ①（主語が複数）～を構成する ②（主語が単数）～である
+1113\tunify\t[他] ～を統一する
+1114\tunite\t[自] ①団結する [他] ②～を団結させる
+1115\tcombine\t[他] ①（A with B） （A）を（B と）結びつける，同時に行う [自] ②結びつく
+1116\tmurder\t[名] ①殺人 ②（形容詞的に）殺人の [他] ③（計画的に）～を殺す
+1117\tarrest\t[他] ①～を逮捕する [名] ②逮捕
+1118\tprison\t[名] 刑務所
+1119\tvice\t[名] ①（売春，麻薬などの）犯罪〈不可算〉 ②悪徳 [形] ③ 副～
+1120\twitness\t[名] ①目撃者，証人 ② 証言 [他] ③～を目撃する
+1121\tconflict\t[名] ①対立，紛争 ②葛藤 [自] ③（with ～）（～と）矛盾する
+1122\tbullet\t[名] 弾丸
+1123\twound\t[名] ①傷 [他] ②～を傷つける
+1124\ttriumph\t[名] ①勝利 [自] ②勝利する
+1125\tmilitary\t[形] 軍事的な
+1126\tstrategy\t[名] 戦略
+1127\tconquer\t[他] ①（国や地域）を征服する ②（病気や恐怖など）を克服する
+1128\tdefend\t[他] （A from B）（B からA）を守る
+1129\tquarrel\t[自] ①（with ～）（～と）口論する [名] ②口論
+1130\trob\t[他] ①（銀行など）を襲う ②（A of B）（A）から（B を）奪う
+1131\tdeprive\t[他] （A of B） （A）から（B を）奪う
+1132\tdevastate\t[他] ①（町など）を壊滅させる ②（人）を打ちのめす
+1133\thazard\t[名] 危険（になり得るもの）
+1134\torphan\t[名] 孤児
+1135\tinfant\t[名] （主に歩く前の）幼児
+1136\tslave\t[名] ①奴隷 ②（to ～）（比喩的に）（～の）奴隷
+1137\tacquaintance\t[名] ①知人 ②面識，（ちょっとした）知識
+1138\tmerchant\t[名] 商人
+1139\tresident\t[名] ①住人，居住者 ②滞在者 [形] ③住んでいる
+1140\tcrew\t[名] ①（集合的に）乗組員 ②（取材などの）チーム
+1141\tcommute\t[自] ①通勤する [名] ②通勤
+1142\tchase\t[他] ①～を追いかける [名] ②追跡
+1143\tovertake\t[他] ～を追い越す
+1144\tfade\t[自] （色，記憶などが）薄れる
+1145\tdissolve\t[自] ①溶ける [他] ②～を溶かす ③（議会など）を解散する
+1146\tfloat\t[自] ①浮かぶ [他] ②～を浮かべる
+1147\tsink\t[自] ①沈む [他] ②～を沈める [名] ③（台所の）流し
+1148\tfluctuate\t[自] （数値，物価が）変動する
+1149\tcirculate\t[自] ①循環する，流布する [他] ②～を循環させる
+1150\ttransform\t[他] ①～を（大幅に）変える [自] ②（大幅に）変形する，変身する
+1151\tshift\t[名] ①（考え方の）転換 ②（勤務の）交替
+1152\tmodify\t[他] ～を修正する
+1153\trevise\t[他] （制度，予測，論文など）を修正する，改正する
+1154\tvehicle\t[名] ①（エンジンの付いた）車両 ②（思想，意見の）伝達手段
+1155\tvoyage\t[名] 航海，船旅
+1156\tconfirm\t[他] ①～を確認する ②～を裏付ける
+1157\tensure\t[他] ～を確実にする
+1158\taddress\t[他] ①～に取り組む ②～に呼びかける [名] ③演説 ④住所
+1159\tapproach\t[名] ①（to ～）（～への）取り組み方，接近 [他] ②～に取り組む，接近する
+1160\tresolve\t[他] ①～を解決する ②（to do）（～する）決心をする
+1161\tsettle\t[他] ①（紛争など）を解決する ②～を置く，据える [自] ③定住する ④（on ～）（～を）決める
+1162\twarn\t[他] ～に警告する
+1163\tforce\t[他] ①～に強いる [名] ②力，武力
+1164\tboost\t[他] ～を促進させる，増大させる
+1165\tappeal\t[自] ①（to ～）（～に）訴える [名] ②魅力，人気 ③（for ～）（～に対する）訴え
+1166\tleap\t[自] ①跳ぶ [名] ②躍進，急増
+1167\tgrab\t[他] ①（ぐいっと）～をつかむ ②（急いで食事，睡眠）をとる
+1168\tseize\t[他] ①～をつかむ ②（麻薬など）を押収する，（犯人）を捕らえる
+1169\tcast\t[他] ①～を投げる ②（光など）を投げかける ③～に役を与える
+1170\tslap\t[他] ～を平手打ちする
+1171\tstun\t[他] ①～を気絶させる ②～をぼう然とさせる
+1172\tilluminate\t[他] ①～を照らす ②（問題など）を解明する
+1173\tmend\t[他] ～を修繕する
+1174\treact\t[自] （to ～）（～に）反応する
+1175\tendure\t[他] （長期にわたり）～に耐える
+1176\tencounter\t[他] ①～に偶然出会う ②（問題，反対など）に遭う [名] ③出会い
+1177\tneglect\t[他] ①～を怠る，放置する ②（子ども）の世話をしない [名] ③放置
+1178\tundergo\t[他] ～を経験する
+1179\ttrace\t[他] ①～を捜し出す ②～の追跡調査をする [名] ③（微妙な）跡
+1180\tconduct\t[他] ①～を行う ②（電気，熱）を伝える [名] ③行為
+1181\temerge\t[自] ①（隠れていたものが）現れる ②（国家などが）台頭する
+1182\tunfold\t[自] ①展開する，はっきりしてくる [他] ②～を広げる
+1183\tderive\t[自] ①（from ～）（～に）由来する [他] ②～を引き出す，得る
+1184\tpossess\t[他] ～を所有している
+1185\tretain\t[他] ～を保持する
+1186\tsecure\t[他] ①（場所，地位，契約など）を確保する [形] ②安全で，守られて
+1187\tcapture\t[他] ①～を捕らえる [名] ②捕獲，（敵地の）攻略
+1188\tinquiry\t[名] ①（into ～）（～の）調査 ②質問，問い合わせ
+1189\tspecialize\t[自] （in ～） ①〈英〉（～を）専攻する ②（～を）専門にする
+1190\tsemester\t[名] （米，日本などの2 学期制の）学期
+1191\tbiology\t[名] 生物学
+1192\tecology\t[名] 生態（学）
+1193\tphilosophy\t[名] ①（学問としての）哲学〈不可算〉 ②人生哲学，考え方〈可算〉
+1194\tgeography\t[名] 地理（学）
+1195\tpsychology\t[名] ①心理学 ②心理
+1196\tinstitution\t[名] ①（大学，病院などの）機関 ②（結婚などの）制度
+1197\tdormitory\t[名] 寮
+1198\tnotion\t[名] 考え
+1199\tconcept\t[名] 概念，考え
+1200\tmeditation\t[名] ①瞑想 ②熟考
+1201\tinsight\t[名] ①（into ～）（～に対する）洞察（力） ②見識
+1202\toutlook\t[名] ①（人生，世界などに対する）考え方 ②（経済，天候などの）見通し
+1203\tcaution\t[名] ①用心 ②警告 [他] ③～に注意［警告］を与える
+1204\twill\t[名] ①意志 ②遺書
+1205\toption\t[名] 選択肢，選択（の自由）
+1206\tnightmare\t[名] ①悪夢 ②悪夢のようなこと
+1207\tkeen\t[形] ①（頭脳，感性などが）鋭い ②（be － on ～）（～に）熱中して，好きで
+1208\tcherish\t[他] ～を大切にする，胸に抱く
+1209\tintend\t[他] （to do）～するつもりだ
+1210\tsuspect\t[他] ①（that S V）～ではないかと思う ②～に嫌疑をかける [名] ③容疑者
+1211\tcomprehend\t[他] ～を（十分に）理解する
+1212\tmisunderstand\t[他] （人，人の言うこと）を誤解している
+1213\tidentify\t[他] ①～を（何なのか）特定する ②（A with B）（A）を（B と）同一視する ③（with ～）（～に）なりきる
+1214\tpermit\t[他] ①～を許可する [名] ②許可証
+1215\tacknowledge\t[他] ～を認める
+1216\ttrim\t[他]①～を刈り込む，切り取る [形] ②こぎれいな
+1217\tomit\t[他] ～を省く
+1218\tcultivate\t[他] ①～を耕す ②～を育む ③～を磨く
+1219\tshade\t[名] ①日陰，（絵画，写真の）陰の部分，ブラインド ②（意味などの）わずかな違い
+1220\tbreeze\t[名] そよ風
+1221\tdesert\t[名] ①砂漠 [他] ②～を見捨てる
+1222\tfog\t[名] 霧
+1223\tmoisture\t[名] 湿気，水分
+1224\tdamp\t[形] 湿った，じめじめした
+1225\tpath\t[名] （小）道
+1226\ttrail\t[名] ①山道 ②跡 ③（a － of destruction）爪跡
+1227\tstream\t[名] ①小川 ②（a － of ～）（～の）流れ
+1228\ttide\t[名] ①潮（の干満），潮流 ②時流
+1229\thabitat\t[名] 生息地
+1230\tlayer\t[名] （大気や地面などの）層
+1231\tvolcano\t[名] 火山
+1232\tmine\t[名] ①鉱山 ②地雷（＝landmine）
+1233\tscent\t[名] ①（花，果物の良い）香り ②（動物が残したそれ自身の）臭い
+1234\twheat\t[名] 小麦
+1235\tswallow\t[名] ①ツバメ [他] ②～を飲み込む
+1236\tweb\t[名] ①（クモの）巣 ②インターネット（www＝the World Wide Web）
+1237\tcattle\t[名] ウシ
+1238\tkitten\t[名] 子ネコ
+1239\torganism\t[名] 生物
+1240\twildlife\t[名] 野生生物
+1241\tbeast\t[名] 野獣
+1242\tape\t[名] 類人猿
+1243\tmammal\t[名] 哺乳動物，哺乳類
+1244\tflock\t[名] ①（鳥，羊の）群れ [自] ②群れる
+1245\tbreed\t[自] ①繁殖する [他] ②～を繁殖させる ③～を引き起こす [名] ④品種，血統
+1246\treproduce\t[自] ①繁殖する [他] ②～を繁殖させる ③（音，絵など）を再現する
+1247\thatch\t[自] ①（卵から）かえる，孵化する [他] ②（卵から）～をかえす
+1248\tdiligent\t[形] 勤勉な
+1249\tnoble\t[形] ①高潔な ②貴族の [名] ③貴族〈可算〉
+1250\tarrogant\t[形] 傲慢な
+1251\ttimid\t[形] 臆病な
+1252\thumble\t[形] ①控えめな ②卑しい，貧しい
+1253\tinclined\t[形] ①（be ～ to do）～する傾向がある ②～したい気持ちだ
+1254\tprincipal\t[形] ①主要な [名] ②〈米〉校長
+1255\tprime\t[形] ①（目標，容疑者などが）最重要な [名] ②素数
+1256\tindispensable\t[形] 不可欠な
+1257\tgrave\t[形] ①重大な [名] ②墓（穴）
+1258\tdefinite\t[形] 明確な
+1259\tevident\t[形] 明らかな
+1260\tprominent\t[形] ①（物が）目立った ②（人が）著名な，重要な
+1261\tmarked\t[形] （名詞の前で）際立った，著しい
+1262\tgrace\t[名] ①優美さ ②（say －）（食事の前後の）感謝の祈り（をささげる）
+1263\tcharm\t[名] ①魅力 ②（a good-luck －）お守り，まじない
+1264\trational\t[形] 理性的な
+1265\tmagnificent\t[形] 壮大な，素晴らしい
+1266\tsuperior\t[形] ①（be － to ～）（～）より優れている [名] ②上役，上司
+1267\tloyal\t[形] （to ～）（～に）忠実な
+1268\thorrible\t[形] （物，天気などが）とてもひどい，ぞっとする
+1269\tmiserable\t[形] 悲惨な，とても不幸な
+1270\tdull\t[形] ①退屈な ②切れ味が悪い ③鈍い
+1271\tnasty\t[形] （人，物，発言などが）不快な
+1272\tinsane\t[形] 正気でない
+1273\tridiculous\t[形] ばかげた
+1274\tnotorious\t[形] （for ～）（～で）悪名高い
+1275\tevil\t[形] ①（道徳的に）悪い [名] ②悪
+1276\tmess\t[名] ①乱雑 [自] ②（with ～）（～を）からかう，ちょっかいを出す
+1277\tvast\t[形] ①（地域，土地が）広大な ②（数量が）莫大な
+1278\thuge\t[形] 巨大な
+1279\ttiny\t[形] とても小さな
+1280\tsphere\t[名] ①球体 ②範囲，領域
+1281\tstrip\t[名] ①細長い一片 [他] ②（罰として）～から奪う [自] ③裸になる
+1282\tinternal\t[形] ①内部の ②国内の
+1283\tmobile\t[形] ①流動的な [名] ②携帯電話
+1284\tsteep\t[形] ①（坂などが）険しい ②（増減が）急な，（価格などが）異常に高い
+1285\tintense\t[形] （感情，競争などが）強烈な
+1286\tabstract\t[形] ①抽象的な [名] ②（論文などの）要旨
+1287\tinevitable\t[形] 避けられない，必然的な
+1288\tneutral\t[形] ①中立の [名] ②中立
+1289\tbrief\t[形] ①手短な，簡潔な [名] ②要約
+1290\tpotential\t[形] ①潜在的な [名] ②潜在能力，可能性〈不可算〉
+1291\ttough\t[形] ①たくましい，頑強な ②骨の折れる，厳しい
+1292\tsecondhand\t[形] ①中古の ②間接的な
+1293\tresemble\t[他] ～に似ている
+1294\tcontrary\t[名] ①（on the －）それどころか [副] ②（－ to A）（A とは）反対に [形] ③（（名詞） to the －）それとは反対の～
+1295\tcategory\t[名] 範疇
+1296\tscope\t[名] 範囲
+1297\trespective\t[形] それぞれの
+1298\tgiven\t[形] ①（時間，量などが）定められた [前] ②～を考慮すると
+1299\tpeculiar\t[形] ①（to ～）（～に）固有の ②独特な，変な
+1300\tplenty\t[名] （of ～）十分な～，たくさんの～
+1301\tsufficient\t[形] 十分な
+1302\tnumerous\t[形] 多くの
+1303\tsubstantial\t[形] ①かなりの，たくさんの ②内容のある，重要な
+1304\tunit\t[名] 単位
+1305\tdiameter\t[名] 直径
+1306\tquantity\t[名] 量
+1307\tdeficiency\t[名] 欠乏，不足
+1308\tlessen\t[他] ～を減らす
+1309\tera\t[名] 時代
+1310\tsession\t[名] ①（活動の）期間 ②（議会などの）会期 ③（ある活動の）集まり
+1311\tpause\t[名] ①休止 [自] ②休止する
+1312\tmeanwhile\t[副] ①その間 ②（対比を示して）その一方で
+1313\tsouvenir\t[名] 土産，記念品
+1314\tbrick\t[名] ①れんが ②〈英〉（おもちゃの）積み木
+1315\tpole\t[名] ①棒，さお，柱 ②（天体，地球の）極
+1316\tthread\t[名] ①糸 [他] ②～に糸を通す
+1317\tmischief\t[名] いたずら〈不可算〉
+1318\tsuperstition\t[名] 迷信
+1319\tstorage\t[名] 貯蔵，保管〈不可算〉
+1320\tshelter\t[名] ①避難（所） ②住居
+1321\tgarment\t[名] 衣類
+1322\tcabinet\t[名] ①戸棚 ②（the C－）内閣
+1323\trecipe\t[名] ①レシピ，調理法 ②秘訣，原因
+1324\tbrochure\t[名] パンフレット
+1325\tshipping\t[名] （商品の）発送
+1326\tfetch\t[他] （主に〈英〉）～を取って来る
+1327\tdistribute\t[他] ①～を分配する，配る ②（be －d）分布している
+1328\tstatue\t[名] 像
+1329\tsculpture\t[名] 彫刻
+1330\tcarve\t[他] ～を彫る，刻む
+1331\tmyth\t[名] ①（俗説という意味での）神話 ②（古代の）神話
+1332\tcraft\t[名] ①工芸（品） ②（職人の）技術 ③船，乗り物
+1333\tjournal\t[名] ①雑誌，専門誌 ②（公的な）日誌，日記
+1334\theaven\t[名] ①天国 ②（the －s）空
+1335\tfuneral\t[名] 葬式
+1336\tsoul\t[名] ①魂 ②（慣用句あるいは否定文で）人
+1337\tpriest\t[名] 神父，僧侶，牧師，聖職者
+1338\tfaith\t[名] ①（主に宗教上の）信仰 ②信頼
+1339\tsacred\t[形] 神聖な
+1340\tdivine\t[形] 神の
+1341\tcontext\t[名] ①文脈 ②状況
+1342\tsingular\t[形] ①単数の ②（褒めて）比類なき ③奇妙な
+1343\tcommand\t[名] ①言語を操る力 ②命令 [他] ③～を集める ④～を見渡せる
+1344\tinstance\t[名] 例
+1345\tnarrative\t[名] 語り，物語
+1346\tdialogue\t[名] ①（本，劇，映画の中の）会話 ②対談，対話
+1347\tusage\t[名] 語法
+1348\taccent\t[名] ①訛 ②アクセント
+1349\ttemper\t[名] ①気性 ②平静（な気分）
+1350\taffection\t[名] 愛情
+1351\tenthusiasm\t[名] 情熱，熱意
+1352\tpassion\t[名] 情熱
+1353\trage\t[名] ①激怒 [自] ②（戦争，病気が）激しく続く，猛威をふるう
+1354\tsorrow\t[名] 悲しみ
+1355\tincredible\t[形] 信じられない
+1356\tchuckle\t[自] ①くすくす笑う [名] ②くすくす笑うこと
+1357\ttease\t[他] ～をからかう，冷やかす
+1358\tdare\t[他] ①（to do）思い切って～する [助] ②（do）思い切って～する
+1359\twilling\t[形] （be － to do）嫌がらずに～する
+1360\tscream\t[自] ①悲鳴を上げる [名] ②悲鳴
+1361\tsoothe\t[他] ①（人）をなだめる ②（痛みなど）をやわらげる
+1362\ttempt\t[他] ～を誘惑する
+1363\tscold\t[他] ～を叱る
+1364\toppress\t[他] ～を圧迫する，虐げる
+1365\tthreaten\t[他] ①（to do）～すると脅す ②～を脅かす ③～のおそれがある
+1366\tdelight\t[他] ①～を喜ばせる [名] ②（大）喜び
+1367\tastonish\t[他] ～を（とても）驚かせる
+1368\tmourn\t[他] ～を嘆く，悼む
+1369\toffend\t[他] （人，物が）～を怒らせる，～の気分を害する
+1370\tdepress\t[他] ～を憂うつにさせる，落ち込ませる
+1371\tsacrifice\t[他] ①～を犠牲にする [名] ②犠牲
+1372\timpulse\t[名] 衝動
+1373\tcurse\t[名] ①災いの元 ②呪い [他] ③～を呪う，ののしる
+1374\tfactor\t[名] 要因
+1375\tstem\t[自] ①（from ～）（～が）原因である [名] ②茎，幹，ワイングラスの脚
+1376\ttrigger\t[他] ①～のきっかけになる，～を誘発する [名] ②（銃の）引き金
+1377\tconsequence\t[名] ①結果 ②（of －） 重要性
+1378\tprocess\t[名] ①過程 [他] ②～を加工する，処理する
+1379\tresort\t[自] ①（to ～）（～に）訴える [名] ②行楽地 ③手段
+1380\tformula\t[名] ①方法 ②秘けつ ③（数学，化学などの）式，公式
+1381\tprocedure\t[名] 手続き，手順
+1382\textraordinary\t[形] ①並外れた ②臨時の（会議など） ③特命の（大使など）
+1383\tabsolute\t[形] 絶対的な
+1384\toverwhelming\t[形] 圧倒的な
+1385\taltogether\t[副] ①完全に ②全部で
+1386\tentire\t[形] すべての
+1387\ttremendous\t[形] すさまじい
+1388\tsheer\t[形] ①（数量やサイズを強調して）とてつもない～の ②まったくの
+1389\tpartial\t[形] ①部分的な ②不公平な ③（to ～）（～が）大好きで
+1390\tbarely\t[副] ①かろうじて ②ほとんど～ない
+1391\tslight\t[形] わずかな
+1392\tapproximately\t[副] （数量が）おおよそ，約
+1393\tfrequently\t[副] 頻繁に
+1394\tapparently\t[副] ①どうやら～らしい ②見たところでは
+1395\tmerely\t[副] ①（主に名詞の前で）～にすぎない ②（動詞などの前で）単に
+1396\tnevertheless\t[副] それにもかかわらず
+1397\tsomehow\t[副] ①何らかの方法で ②何らかの理由で，どういうわけか
+1398\tthus\t[副] ①それゆえ（に） ②このように
+1399\tpretty\t[副] ①まあまあ [形] ②かわいい
+1400\tdespite\t[前] ～にもかかわらず
+1401\tassert\t[他] ～と断定する，～を主張する
+1402\tdefy\t[他] ①～に逆らう ②～を拒む
+1403\tcondemn\t[他] ①～を非難する ②～に（刑の）宣告をする ③ ～を強いる
+1404\tcontradict\t[他] ①～と矛盾する ②～に反論する
+1405\tcite\t[他] ～を引き合いに出す，引用する
+1406\tillustrate\t[他] ①（例で）～を説明する，例証する ②～に挿絵を入れる，～を図解する
+1407\tarticulate\t[他] ①（考えなど）をはっきり述べる [形] ②考えを明確に表現できる
+1408\tadvocate\t[名] ①提唱者，支持者 [他] ②～を主張する，支持する
+1409\tbreakthrough\t[名] 飛躍的進歩，大発見
+1410\tevolution\t[名] 進化
+1411\tinnovation\t[名] 革新
+1412\tprobe\t[名] ①探査機 [他] ②～を調査する
+1413\tfluid\t[名] ①流体 [形] ②流動的な，なめらかな
+1414\tparticle\t[名] ①粒子 ②（not a － of A）（A の）かけら（もない）
+1415\tgravity\t[名] ①重力 ②重大さ
+1416\tfriction\t[名] 摩擦
+1417\tmutation\t[名] 突然変異
+1418\theredity\t[名] 遺伝
+1419\thypothesis\t[名] 仮説
+1420\tspecimen\t[名] ①標本 ②サンプル
+1421\tmicroscope\t[名] 顕微鏡
+1422\trealm\t[名] 領域，領土
+1423\tacid\t[形] ①酸性の ②辛辣な
+1424\ttoxic\t[形] 有害な，有毒な
+1425\tpoison\t[名] 毒
+1426\tstrive\t[自] 努力する
+1427\tendeavor\t[名] ①努力，試み [他] ②～を（懸命に）努力する，試みる
+1428\tmanufacture\t[他] ①～を製造する [名] ②製造，製品
+1429\tyield\t[他] ①～を産出する [自] ②（to ～）（～に）屈する [名] ③産出量
+1430\tduplicate\t[他] ①～を複製する [名] ②複製品 [形] ③複製の
+1431\tassemble\t[他] ①～を組み立てる [自] ②集まる
+1432\tmold\t[他] ①～を（型に入れて）作る ②（人格，意見など）を形成する
+1433\tcoin\t[他] ①～を作り出す [名] ②硬貨
+1434\tphysician\t[名] ①〈米〉医師 ②〈英〉内科医
+1435\tveterinarian\t[名] 獣医
+1436\ttherapy\t[名] 治療（法）
+1437\tinjection\t[名] 注射
+1438\tdose\t[名] （1回分の）服用量
+1439\tsanitation\t[名] 衛生
+1440\tgerm\t[名] 細菌，ばい菌〈可算〉
+1441\ttumor\t[名] 腫瘍〈可算〉
+1442\tagony\t[名] 苦痛
+1443\tdisorder\t[名] （心身の）不調
+1444\tplague\t[名] ①（大規模な）疫病，伝染病，災害 [他] ②～を苦しめる
+1445\tepidemic\t[名] （大）流行
+1446\tdiagnosis\t[名] 診断
+1447\tmortality\t[名] ①（－ rate）死亡率 ②死すべき運命
+1448\tchronic\t[形] 慢性の
+1449\timmune\t[形] 免疫の（ある）
+1450\tchoke\t[自] ①（on ～）（～で）息が詰まる，窒息する [他] ②～を窒息させる
+1451\tparalyze\t[他] ～を麻痺させる
+1452\tinfect\t[他] （人，動物，地域）に感染させる，伝染する
+1453\tprescribe\t[他] ①（薬など）を処方する ②（行為など）を指示する
+1454\tdigest\t[他] ①～を消化する ②～を理解する [名] ③要約
+1455\tweary\t[形] ①（極度に）疲れている ②うんざり［飽き飽き］している
+1456\tnourish\t[他] ①～に栄養を与える ②（考えなど）を抱く
+1457\tflesh\t[名] （人，動物の皮，骨に対する）肉
+1458\tkidney\t[名] 腎臓
+1459\tposture\t[名] 姿勢
+1460\tlimb\t[名] 手足（の1 本）
+1461\terect\t[形] ①直立した [他] ②～を建てる
+1462\tcompensate\t[他] （A for B） （A）に（B を）補償する
+1463\tflourish\t[自] 栄える
+1464\tabuse\t[名] ①虐待 ②乱用 [他] ③～を悪用する
+1465\tbias\t[名] 偏見
+1466\tprestige\t[名] 名声，威信
+1467\tprivilege\t[名] 特権
+1468\tfeat\t[名] 偉業
+1469\tdignity\t[名] 威厳
+1470\tvirtue\t[名] ①美徳 ②（人，物の個々の）長所 ③（by － of ～）～のために
+1471\taristocracy\t[名] 貴族（階級，社会）
+1472\trebel\t[名] ①反逆者 [自] ②（against ～）（～に）反逆する，反抗する
+1473\tscheme\t[名] ①〈英〉計画 ②陰謀
+1474\tconvention\t[名] ①会議，大会 ②慣習 ③条約
+1475\tconference\t[名] （on ～）（～に関する）会議
+1476\tconsent\t[名] ①合意 [自] ②（to ～）（～に）合意する
+1477\tinitiative\t[名] ①新構想，新計画 ②主導権
+1478\tprovince\t[名] ①（カナダなどの）州，（中国の）省 ②（the －s）地方
+1479\tcolony\t[名] ①植民地 ②（アリなどの）群落
+1480\tfrontier\t[名] ①辺境，（主に〈英〉）国境 ②（the －s）最前線
+1481\ttribe\t[名] 部族，種族
+1482\tprimitive\t[形] 原始的な，未開の
+1483\tethnic\t[形] 民族の，民族的な
+1484\tanonymous\t[形] 匿名の
+1485\tcoverage\t[名] ①報道 ②（保険の）補償（範囲）
+1486\tobligation\t[名] ①（社会に対する）責務 ②（個人に対する）恩義
+1487\tnorm\t[名] ①ふつうのこと ②（－s）規範
+1488\tpatent\t[名] ①特許（権） [他] ②～の特許をとる [形] ③明白な，見えすいた
+1489\tentitled\t[形] ①（to ～）（～の）権利がある ②～と題された
+1490\tdonate\t[他] ①～を寄付する ②（臓器など）を提供する
+1491\tconform\t[自] （to ～）（～に）合わせる
+1492\tcomply\t[自] （with ～）（～に）従う， 遵守する
+1493\tlegislation\t[名] （集合的に）法律〈不可算〉
+1494\ttestimony\t[名] （法廷などでの）証言
+1495\tjury\t[名] 陪審（員団）
+1496\tlegitimate\t[形] ①正当な ②合法の
+1497\tenforce\t[他] ①～を施行する ②～を強制する
+1498\tregime\t[名] 政権，政治体制
+1499\tbureaucracy\t[名] ①官僚制度，官僚主義 ②（集合的に）官僚
+1500\tcorruption\t[名] 腐敗，汚職
+1501\ttyranny\t[名] ①圧政，専制政治 ②暴虐（な行為）
+1502\tsanction\t[名] ①（－s）制裁 ②（公的な）認可
+1503\tcensus\t[名] 国勢調査
+1504\tcandidate\t[名] （for ～）（～の）候補（者），（～に）なりそうな人［物］
+1505\tsenator\t[名] 〈米〉（しばしばS－）上院議員
+1506\tambassador\t[名] 大使
+1507\tdiplomat\t[名] 外交官
+1508\trefugee\t[名] 難民
+1509\tterritory\t[名] ①領土 ②（動物などの）縄張り，（学問などの）領域
+1510\tally\t[名] ①同盟国，協力者 [自] ②（with ～）（～と）提携する
+1511\tfederal\t[形] 連邦の
+1512\tfeudal\t[形] （主に欧州の）封建制の
+1513\tcommunist\t[形] ①共産主義（者）の [名] ②共産主義者
+1514\testate\t[名] ①（全）財産 ②地所
+1515\tasset\t[名] 財産，資産
+1516\trevenue\t[名] （国などの）歳入，（事業などの）収益
+1517\tdeficit\t[名] （会社，国の）赤字
+1518\tcommerce\t[名] 商業
+1519\toutput\t[名] ①生産高 ②（エンジン，発電機などの）出力
+1520\tsubsidy\t[名] 補助金
+1521\tmonopoly\t[名] 独占（権，品），独占企業
+1522\ttransaction\t[名] 取り引き
+1523\tcorporation\t[名] 企業，法人
+1524\tenterprise\t[名] ①企業 ②（冒険的な）事業
+1525\tventure\t[名] ①（ベンチャー）事業 [自] ②危険を冒して行く
+1526\theadquarters\t[名] 本社，本部
+1527\tpersonnel\t[名] ①（官庁，会社などの）全職員〈複数扱い〉 ②人事
+1528\texpertise\t[名] 専門的知識，専門的技術〈不可算〉
+1529\tquota\t[名] ノルマ，割り当て
+1530\twarehouse\t[名] 倉庫，〈英〉問屋
+1531\ttoil\t[自] ①（長時間）骨折って働く [名] ②骨の折れる仕事
+1532\tundertake\t[他] （仕事など）を引き受ける，始める
+1533\tmerge\t[自] ①合併する [他] ②～を合併させる
+1534\tcomprise\t[他] ①～から成る ②（割合）を占める
+1535\tcomponent\t[名] 構成要素，（車などの）部品
+1536\tframework\t[名] ①枠組 ②骨組み
+1537\tprototype\t[名] ①（of［for］～）（～の）原型 ②試作品 ③典型
+1538\tdimension\t[名] ①（問題などの）側面，要因，次元 ②（－s）寸法，大きさ
+1539\tmargin\t[名] ①余白，欄外 ②（票などの）差 ③端
+1540\trelevant\t[形] 関連のある
+1541\tcompatible\t[形] （with ～）（～と）適合する，互換性がある
+1542\tcorrespond\t[自] ①（to［with］～）（～と）一致する ②（with ～）（～と）（メールや手紙で）やりとりをする
+1543\tidentical\t[形] 同一の，うり二つの
+1544\tequivalent\t[形] ①等しい [名] ②同等のもの
+1545\trandom\t[形] 無作為の，でたらめの
+1546\twarrior\t[名] 戦士
+1547\tassault\t[名] 襲撃，暴行
+1548\ttroop\t[名] （－s）軍隊
+1549\ttorture\t[名] ①拷問 ②辛いこと [他] ③～を拷問にかける
+1550\tdispute\t[名] ①論争，紛争 [他] ②～に異議を唱える
+1551\triot\t[名] 暴動
+1552\tpersecution\t[名] 迫害
+1553\tdominate\t[他] ～を支配する
+1554\tslaughter\t[他] ～を虐殺する，（食肉用に）殺す
+1555\tsuppress\t[他] ①（反乱，暴動）を鎮圧する ②（笑い，怒り）を抑える
+1556\tsurrender\t[自] ①（to ～）（～に）降伏する [他] ②～を引き渡す
+1557\tcontend\t[自] ①（with ～）（～と）戦う [他] ②（that S V）（～と）（強く）主張する
+1558\thostile\t[形] ①敵意のある ②敵の ③（環境などが）厳しい
+1559\twreck\t[名] ①（乗り物，家の）残骸 ②（健康を損ね）ボロボロの人
+1560\ttoll\t[名] ①犠牲［死傷］者（数），被害 ②（高速道路などの）通行料 ③通話料
+1561\tdisrupt\t[他] （活動の進行など）をかき乱す
+1562\tinterfere\t[自] （with ～）（～を）邪魔する，干渉する
+1563\tconfront\t[他] ①（困難などが人）に立ちふさがる ②（人が困難など）に直面する，
+1564\thinder\t[他] ～を妨げる
+1565\texplode\t[自] ①爆発する ②爆発的に増加する
+1566\tcollide\t[自] （with ～）（～と）衝突する
+1567\tnephew\t[名] 甥
+1568\tspouse\t[名] 配偶者
+1569\their\t[名] 相続人，後継者
+1570\tfolk\t[名] ①民族 ②人々
+1571\tpeer\t[名] ①（－s）同等の人，同輩 [自] ②（よく見えなくて）じっと見る
+1572\tproceed\t[自] ①（順を追って）進む ②（to do）（さらに続けて）～する
+1573\tnavigate\t[自] ①（旅などで）進路を決める [他] ②～を航行する，誘導する
+1574\troam\t[自] 歩き回る
+1575\tflee\t[自] 逃亡する
+1576\tretreat\t[自] ①退く [名] ②撤退，退却
+1577\tcrawl\t[自] 這って進む，這うように進む
+1578\tdrift\t[自] 漂う
+1579\talter\t[他] ～を変える
+1580\tconvert\t[他] ①（A into B）（A）を（B に）転換する ②～を改宗させる
+1581\tshrink\t[自] ①縮む ②（数量が）減る [他] ③～を縮ませる，減らす
+1582\twither\t[自] しおれる，しぼむ
+1583\ttransition\t[名] 移り変わり，推移
+1584\tdistortion\t[名] 歪めること
+1585\tenhance\t[他] ～を向上させる
+1586\treinforce\t[他] ～を補強する
+1587\tfoster\t[他] ①（才能など）を育成する ②～の里親になる [形] ③里親の
+1588\tbreakdown\t[名] ①崩壊 ②故障 ③衰弱
+1589\tcollapse\t[自] ①崩壊する，倒れる [名] ②崩壊，倒れること
+1590\trender\t[他] ①（SVOC）（O）を（C）にする ②（援助など）を与える
+1591\timpair\t[他] （人間の機能など）を低下させる，損なう
+1592\tdeteriorate\t[自] 悪化する
+1593\tundermine\t[他] ～を弱める，揺るがす
+1594\ttackle\t[他] ～に取り組む
+1595\tdisposal\t[名] ①（at one's －）～を自由にする ②処分，廃棄
+1596\tconfine\t[他] ①～を閉じ込める ②（活動など）を制限する
+1597\tdesignate\t[他] （通例，受け身で）～を指定する
+1598\tregulate\t[他] ①（主に規則によって）～を規制する ②（機器など）を調整する
+1599\tprohibit\t[他] ～を禁じる
+1600\trefrain\t[自] （from ～）（～を）控える
+1601\tcurb\t[他] ①～を抑制する [名] ②縁石
+1602\trestrain\t[他] ～を抑制する
+1603\thalt\t[他] ①～を止める [自] ②止まる [名] ③停止
+1604\tanimate\t[他] ①～を活気づける ②～をアニメ化する
+1605\tspur\t[他] ①～を駆り立てる，促す [名] ②拍車，刺激，動機
+1606\turge\t[他] ①～をせき立てる，～に強く勧める [名] ②（何かがしたい）衝動
+1607\tlure\t[他] ①～を誘い込む [名] ②魅力，誘惑
+1608\tstimulate\t[他] ～を刺激する
+1609\tcompel\t[他] （A to do）（A）に（～することを）強制する
+1610\tdictate\t[他] ①～を書き取らせる ②～を命令する，規定する
+1611\tblur\t[他] ①～をぼやかす [自] ②ぼやける
+1612\tdivert\t[他] ①（川など）の方向を変える ②（注意など）をそらす
+1613\treverse\t[他] ①～を逆転する，覆す [名] ②逆 [形] ③逆の
+1614\tsupplement\t[他] ①（栄養，収入など）を補う [名] ②補充，栄養補助食品 ③付録
+1615\tpose\t[他] ～をもたらす
+1616\tstroll\t[自] 散策する
+1617\tshrug\t[他] ①（肩）をすくめる [自] ②肩をすくめる
+1618\tsniff\t[自] ①（くんくん）臭いをかぐ ②（かぜや泣いて）鼻をすする
+1619\tembrace\t[他] ①～を抱擁する ②（思想など）を受け入れる
+1620\tbetray\t[他] ①～を裏切る ②～を漏らす，（うっかり）さらけ出す
+1621\tdeceive\t[他] ～をだます
+1622\tbully\t[他] ①～をいじめる [名] ②いじめっ子
+1623\tsqueeze\t[他] ①（果汁など）を搾る ②（手，指で）～を強く押す
+1624\tinsert\t[他] ①～を差し込む ②（語句など）を書き込む
+1625\tdetach\t[他] （A from B） （A）を（B から）切り離す
+1626\twithdraw\t[他] ①～を引っ込める ②（預金など）を引き出す [自] ③退く
+1627\twithstand\t[他] ～に耐える
+1628\texert\t[他] （力，影響力など）を働かせる
+1629\tcompile\t[他] ～をまとめる，編集する
+1630\tbrowse\t[自] ①拾い読みする [他] ②～を拾い読みする
+1631\tmanipulate\t[他] ～を操作する
+1632\timplement\t[他] ①（契約，計画など）を実行する [名] ②（単純な）道具
+1633\texecute\t[他] ①～を遂行する，実行する ②～を処刑する
+1634\thost\t[他] ①（大会など）を主催する [名] ②（a － of）多くの ③（客を接待する）主人（＊女性も含む），主催者，開催地
+1635\tmount\t[他] ①～を据え付ける ②（馬，自転車）に乗る [自] ③増加する
+1636\tdischarge\t[他] ①～を排出する ②（職務，任地などから）～を解放する
+1637\tdrain\t[他] ①～の水を抜く ②～の水分を切る [自] ③（液体が）流出する，乾く
+1638\tsoak\t[他] ①～を浸す ②（up）（日光，考えなど）を吸収する
+1639\tsuspend\t[他] ①～をつるす ②～を中断する ③～を停職［停学］にする
+1640\textract\t[他] ①～を取り出す，抽出する [名] ②抽出したもの，抜粋
+1641\tsummon\t[他] ①～を呼ぶ，召喚する，喚問する ②（勇気など）を奮い立たせる
+1642\tembark\t[自] （on ～）（～に）着手する，乗り込む
+1643\tthrust\t[他] ①～を強く押しつける ②（刃物で）～を突き刺す
+1644\tpenetrate\t[他] ①～に入り込む ②～を貫通する [自] ③貫通する，入る
+1645\tintrude\t[自] （on～）（～に）立ち入る
+1646\tevade\t[他] ～を逃れる
+1647\tutilize\t[他] ～を利用する
+1648\tspin\t[自] ①ぐるぐる回る [他] ②～を回す ③～を紡ぐ
+1649\tplunge\t[自] ①（into ～）（～に）突っ込む [他] ②（A into B）（A）を（B に）突っ込む
+1650\trattle\t[自] ①ガタガタ鳴る [他] ②～を鳴らす [名] ③ガラガラ
+1651\tvanish\t[自] 消える
+1652\tcease\t[他] （to do［doing］）～しなくなる
+1653\thaste\t[名] 急ぐこと〈不可算〉
+1654\tconceal\t[他] ～を隠す
+1655\tdisguise\t[他] ①～を（偽装して）隠す ②（oneself as ～）～に変装する [名] ③変装
+1656\tcoincide\t[自] ①（with ～）（～と）同時に起きる ②（with ～）（～と）一致する
+1657\tprevail\t[自] ①（考え，習慣などが）普及している ②（最後に人，考えが）優勢となる
+1658\tsustain\t[他] （生命など）を維持する，支える
+1659\tlinger\t[自] ①（いつまでも）残る ②（on）長居する
+1660\trevive\t[自] ①生き返る，よみがえる [他] ②～を生き返らせる
+1661\tresume\t[他] ①～を再開する [自] ②再開する [名] ③〈米〉履歴書 ④概要，レジュメ
+1662\tinspect\t[他] ～を検査する
+1663\tinvestigate\t[他] ①（研究班などが）～を調査する ②（警察が）～を捜査する
+1664\tdetect\t[他] ～を探知する，（病気など）を発見する，（うそなど）を見抜く
+1665\tdiscern\t[他] ～を見分ける
+1666\texpedition\t[名] ①（研究・探求・戦争目的の）探検，遠征 ②探検隊
+1667\tenroll\t[自] ①（in ～）（～に）入学する [他] ②（be －ed）在籍している
+1668\tdiscipline\t[他] ①～をしつける [名] ②しつけ，規律 ③（学問）分野
+1669\tcram\t[自] ①詰め込み勉強をする [他] ②～を詰め込む [名] ③詰め込み
+1670\tfaculty\t[名] ①（生まれ持った）能力 ②（大学の）学部 ③（大学の）全教員
+1671\ttuition\t[名] ①〈米〉授業料 ②（少人数での）授業
+1672\tdiploma\t[名] 〈米〉卒業証書
+1673\tmentor\t[他] ①～を指導する [名] ②（会社，大学などでの）指導者
+1674\tethic\t[名] ①（－s）（社会や職業上の）倫理（観） ②（伝統的に守られた）倫理
+1675\tastronomy\t[名] 天文学
+1676\tarchaeologist\t[名] 考古学者
+1677\tanthropologist\t[名] （文化）人類学者
+1678\tperceive\t[他] ①（A as B）（A）を（B だと）認識する ②～を知覚する
+1679\tgrasp\t[他] ①～を理解する ②～をつかむ [名] ③理解，つかむこと
+1680\tconceive\t[他] ①～を思い浮かべる ②～を妊娠する [自] ③（of ～）（～を）想像する
+1681\tanticipate\t[他] ①～を予想する ②～を期待する
+1682\tforesee\t[他] ～を予知する
+1683\tspeculate\t[自] ①推測する ②（株，土地などに）投機をする
+1684\tinfer\t[他] （A from B） （B からA）を推測する
+1685\tdeduce\t[他] （A from B） （B からA）を推定する
+1686\tponder\t[他] ～を熟考する
+1687\tcontemplate\t[他] ～を熟考する
+1688\tassure\t[他] ～に保証する，確信させる
+1689\tassess\t[他] ～を評価する，査定する
+1690\tevaluate\t[他] ～を（正しく）評価する
+1691\tverify\t[他] （事実かどうか）を確かめる，検証する
+1692\tcompromise\t[自] ①（with ～）（～と）妥協する [他] ②（主義など）を曲げる [名] ③妥協
+1693\treconcile\t[他] ①（A with B）（A）を（B と）調和させる，和解させる ②（oneself to ～）（～を）仕方なく受け入れる
+1694\talert\t[形] ①油断のない，用心深い [名] ②（公的な）警告
+1695\tstereotype\t[名] 固定観念
+1696\tperspective\t[名] ①（経験などで得られる）視点〈可算〉 ②（大局的な）見方，遠近法〈不可算〉
+1697\tprospect\t[名] 見通し
+1698\tvow\t[名] ①誓い [他] ②～を誓う
+1699\tintuition\t[名] 直観
+1700\tillusion\t[名] 幻想
+1701\tcriterion\t[名] 基準
+1702\ttolerate\t[他] ～を大目に見る，我慢する
+1703\toverlook\t[他] ①～を（うっかり）見落とす ②（人の欠点やミスなど）を見逃す，大目に見る ③（場所が）～を見渡す
+1704\tgrain\t[名] ①穀物 ②粒，少量
+1705\tdrought\t[名] 干ばつ
+1706\tirrigation\t[名] 灌漑
+1707\tspectacle\t[名] ①（きわめて印象的な）光景 ②（大がかりな）見せ物
+1708\taltitude\t[名] 標高，高度
+1709\tcatastrophe\t[名] 大災害，災難
+1710\tdecay\t[名] ①腐敗 [自] ②腐敗する，衰える
+1711\terosion\t[名] 侵食
+1712\tflame\t[名] 炎
+1713\tgalaxy\t[名] 銀河
+1714\tmeteor\t[名] 流星，隕石
+1715\tchill\t[名] ①寒気 [他] ②～を冷やす
+1716\tmeadow\t[名] 草地，牧草地
+1717\texploit\t[他] ①（自然の力など）を利用する ②～を搾取する
+1718\tcontaminate\t[他] ～を汚染する
+1719\terupt\t[自] （火山が）噴火する
+1720\tevaporate\t[自] 蒸発する
+1721\tfertile\t[形] 肥沃な，肥えた
+1722\troar\t[自] ①ほえる [名] ②うなり声，怒号，轟音
+1723\tinhabit\t[他] ～に生息している，ある
+1724\tnurture\t[他] ①～を育てる [名] ②養育，教育
+1725\towl\t[名] フクロウ
+1726\tinstinct\t[名] 本能
+1727\tprey\t[名] ①餌食 [自] ②（on ～）餌食にする
+1728\ttimber\t[名] （主に〈英〉）材木
+1729\tfabric\t[名] ①布地，織物 ②組織，構造
+1730\ttextile\t[名] ①織物 [形] ②織物の
+1731\tweave\t[他] ①～を織る ②～を編む
+1732\tcompetent\t[形] 有能な
+1733\toptimistic\t[形] 楽観的な
+1734\tpatriotic\t[形] 愛国的な
+1735\tnaughty\t[形] いたずらな
+1736\tvigorous\t[形] ①（人，活動が）精力的な ②活発な
+1737\tsolitary\t[形] ①（人が）孤高の ②ただひとつの
+1738\tvulgar\t[形] ①（人，行動が）品がない ②（冗談などが）卑わいな
+1739\tskeptical\t[形] 懐疑的な
+1740\thaunt\t[他] ①（亡霊，考えなどが）～につきまとう，出没する [名] ②好んで行く場所，たまり場
+1741\tobsessed\t[形] （with［by］ ～）（～に）取りつかれて，頭が一杯で
+1742\tintent\t[形] ①（on ～）（～に）没頭した，決心した [名] ② 意図
+1743\tindulge\t[自] ①（in ～）（～に）ふける [他] ② ～を思いのままにさせる
+1744\tcling\t[自] （to ～）（～に）固執する，しがみつく
+1745\tflaw\t[名] 欠陥
+1746\tdefect\t[名] 欠陥
+1747\ttrait\t[名] 特性
+1748\tanalogy\t[名] 類似点，例え
+1749\tparallel\t[名] ①類似（物） [形] ②（to ～）（～と）平行の，類似した
+1750\tcrucial\t[形] 重大な
+1751\tprimary\t[形] ①主な，第1 の ②初期の，原始の
+1752\tintegral\t[形] ①不可欠な ②完全な
+1753\tvital\t[形] 不可欠な，きわめて重要な
+1754\tprofound\t[形] 深い
+1755\tgrim\t[形] （状況などが）厳しい
+1756\tfierce\t[形] ①（競争，嵐などが）激しい ② どう猛な
+1757\tharsh\t[形] 厳しい
+1758\tsavage\t[形] （とても）容赦ない，どう猛な
+1759\tacute\t[形] ①深刻な ②鋭い ③急性の
+1760\tambiguous\t[形] 曖昧な
+1761\tobscure\t[形] ①ぼやけた，わかりにくい ②無名の
+1762\tmisleading\t[形] 誤解を招く，紛らわしい
+1763\tstraightforward\t[形] ①（方法などが）わかりやすい ②（人や行動が）率直な
+1764\texplicit\t[形] （発言や文章などが）明確な
+1765\tsophisticated\t[形] ①（機械，システムが）高度な ② 洗練された，教養のある
+1766\tingenious\t[形] 独創的な
+1767\tdecent\t[形] まともな，きちんとした
+1768\tthrive\t[自] ①（会社などが）好調である，繁栄する ②（動［植］物などが）健康に育つ
+1769\twit\t[名] 機知，機知に富んだ人
+1770\taffluent\t[形] 裕福な
+1771\telaborate\t[形] ①手の込んだ，凝った [他] ②～を苦労して作り上げる [自] ③（on ～）（～を）詳しく話す
+1772\tprompt\t[形] ①迅速な [他] ②～に促す
+1773\tswift\t[形] 素早い
+1774\tmighty\t[形] 強力な
+1775\trenowned\t[形] 有名な
+1776\tdim\t[形] ①薄暗い ②（記憶などが）ぼんやりした [他] ③ ～を暗くする
+1777\tgloomy\t[形] ①薄暗い ②陰気な，悲観的な
+1778\tbarren\t[形] 不毛な
+1779\tidle\t[形] ①（仕事がなく）何もしていない ② 怠惰な [他] ③（away）（～を）何もしないでいる
+1780\ttiresome\t[形] 退屈な，うんざりする
+1781\tstatic\t[形] 静的な，（経済などで）変化のない，活気のない
+1782\tclumsy\t[形] 無器用な
+1783\tignorant\t[形] 無知の
+1784\treckless\t[形] 無謀な
+1785\tarbitrary\t[形] 独断的な，勝手な
+1786\tfoul\t[形] ①（味，臭いなどが）不快な [名] ②（スポーツなどの）違反，ファウル
+1787\tshabby\t[形] みすぼらしい，おんぼろの
+1788\tmonotonous\t[形] 単調な
+1789\tcrude\t[形] ①粗末な，粗野な ②加工されていない
+1790\tfragile\t[形] 壊れやすい，もろい
+1791\tvulnerable\t[形] ①傷つきやすい，弱い ②（非難，攻撃を）受けやすい，（病気に）かかりやすい
+1792\trust\t[名] ①さび [自] ②さびる
+1793\tplight\t[名] 窮状，苦境
+1794\tconventional\t[形] 従来の，慣習的な
+1795\tinnate\t[形] （才能などが）先天的な，生まれつきの
+1796\texotic\t[形] ①（動［植］物が）外来の ②異国情緒のある
+1797\ttame\t[形] ①飼い慣らされた，従順な [他] ②～を飼い慣らす
+1798\tsolemn\t[形] ①（場所，祝祭が）厳粛な，（音楽が）荘厳な ②（態度が）真面目な
+1799\tmanifest\t[形] ①明らかな [他] ②（姿勢，感情など）を明らかにする
+1800\tdense\t[形] 密集した，（霧などが）濃い
+1801\tsuperficial\t[形] 表面的な
+1802\ttransparent\t[形] 透明な
+1803\tconsistent\t[形] ①（with ～）矛盾のない，一致している ②安定した，不変の
+1804\tcoherent\t[形] 一貫している
+1805\tuniversal\t[形] 普遍的な
+1806\tupright\t[副] ①直立して [形] ②直立した
+1807\tunderlying\t[形] 根底にある
+1808\tspontaneous\t[形] 自然発生的な
+1809\tmock\t[形] ①模擬の，見せかけの [他] ②（からかって）～をまねる ③～をあざける
+1810\tliable\t[形] ①（to do）～しがちだ ②（to ～）（病気などに）かかりやすい ③（for ～）（～に対して）（法的に）責任がある
+1811\tconverse\t[名] ①正反対 [形] ②正反対の [自] ③（with ～）（～と）会話する
+1812\tpreliminary\t[形] ①予備的な，事前の ②予選の [名] ③予選
+1813\tversion\t[名] ①（個人的な）解釈，意見 ②（製品などの）～版
+1814\tindigenous\t[形] （動［植］物，民族が）固有の
+1815\tdecline\t[自] ①減る，衰退する [他] ②～を断る [名] ③ 衰退，減少
+1816\tmultiply\t[他] ①～を増やす ②（A by B）（A）に（B を）掛ける [自] ③増える
+1817\tsoar\t[自] ①（価格，温度が）急上昇する ②（鳥が）舞い上がる
+1818\taccumulate\t[他] ①～を蓄積する [自] ② 蓄積する
+1819\texceed\t[他] ～を越える
+1820\tabundant\t[形] 豊富な
+1821\tample\t[形] 豊富な
+1822\tgross\t[形] ①総計の ②（食べ物，行動などが）ひどい
+1823\tinfinite\t[形] 無限の
+1824\tsole\t[形] ①唯一の [名] ②足の裏，靴底
+1825\theap\t[名] ①山 ②（a － of ～）たくさんの～
+1826\tfraction\t[名] ①少量 ②分数，端数
+1827\tsimultaneous\t[形] 同時の
+1828\tmedieval\t[形] 中世の
+1829\tdecade\t[名] 10年
+1830\tdawn\t[名] ①夜明け [自] ②夜が明ける ③（on ～）（～に）わかり始める
+1831\tspan\t[名] ①（継続した）期間 ②（集中力，注意力，機械の持続）期間
+1832\texpire\t[自] 期限が切れる
+1833\tpostpone\t[他] ～を延期する
+1834\tequip\t[他] ①～を装備させる，備え付ける ②（人）に（知識や能力などを）身につけさせる
+1835\ttransmit\t[他] ①～を送る，伝える ②（病気など）をうつす
+1836\tendow\t[他] ～を授ける
+1837\tinherit\t[他] ～を受け継ぐ
+1838\tretrieve\t[他] ①～を回収する，取り戻す ②（ファイルなど）を検索する
+1839\tdisplace\t[他] ① ～に取って代わる ②（戦争，災害などで）～を（故郷などから）追い出す
+1840\tbond\t[名] ①きずな ②公債，社債
+1841\tornament\t[名] （小さな）飾り，置物
+1842\tcertificate\t[名] 証明書，免許状，鑑定書
+1843\taccommodation\t[名] （〈米〉－s）宿泊施設
+1844\tintersection\t[名] 交差点
+1845\tpavement\t[名] （主に〈英〉）歩道
+1846\tpedestrian\t[名] 歩行者
+1847\texcursion\t[名] 小旅行，遠足
+1848\titinerary\t[名] 旅程（表）
+1849\ttoken\t[名] ①（as a － of）（～の）しるし（として） ②（バスなどで使われる）代用硬貨，トークン ③〈英〉商品引換券
+1850\tdetergent\t[名] 洗剤
+1851\tpurchase\t[他] ①～を購入する [名] ②購入（品）
+1852\tdwell\t[自] ①住む ②（on ～）（～をくどくど）考える
+1853\tjuvenile\t[形] 青少年の
+1854\tadolescent\t[名] ①思春期の若者 [形] ②思春期の
+1855\tinitial\t[形] ①最初の [名] ②頭文字，イニシャル
+1856\tprecede\t[他] ～に先行する
+1857\tphase\t[名] 段階
+1858\tpriority\t[名] 優先（事項）
+1859\tpremise\t[名] ①前提 ②（－s）（建物を含めた）敷地
+1860\tlegend\t[名] ①伝説，言い伝え ②伝説的人物
+1861\tmasterpiece\t[名] 傑作
+1862\tritual\t[名] ①（宗教的）儀式 [形] ②儀式の
+1863\tworship\t[名] ①崇拝，礼拝 [他] ②～を崇拝する [自] ③（神社などに）お参りする
+1864\tadvent\t[名] ①到来 ②（the A－）キリストの降臨
+1865\tswear\t[自] ①誓う ②罵る
+1866\tconfess\t[自] ①（to ～）（～を）白状する [他] ②～を認める
+1867\tverbal\t[形] 言葉による
+1868\toral\t[形] ①口述の ②口の
+1869\teloquent\t[形] 雄弁な
+1870\tlinguistic\t[形] 言語の，言語学の
+1871\tplot\t[名] ①（小説，演劇などの）筋 ②悪だくみ，陰謀
+1872\tdraft\t[名] ①下書き，草稿 [他] ②～を徴兵する [形] ③（－ beer）生の（ビール）
+1873\tstatement\t[名] ①述べたこと，声明 ②（給与などの）明細書
+1874\tparadox\t[名] 逆説
+1875\tslang\t[名] （集合的に）俗語
+1876\triddle\t[名] なぞなぞ，謎
+1877\tclarify\t[他] ～を明らかにする
+1878\texhibit\t[他] ①～を展示する ②～を示す [名] ③展示物，展覧会
+1879\tportray\t[他] ～を描く
+1880\tattribute\t[他] ①（A to B） （A）を（B）のせいだとする [名] ②特性，属性
+1881\tconsole\t[他] ～を慰める
+1882\tarouse\t[他] ～を呼び起こす
+1883\tdistract\t[他] ①（注意，意識など）をそらす ②～の気を紛らす
+1884\tplead\t[自] ①（with ～）（～に）懇願する [他] ②～を申し立てる
+1885\tyearn\t[自] ①切望する [他] ②～を切望する
+1886\tlong\t[自] （for ～）（～を）切望する
+1887\tadore\t[他] ～を熱愛している
+1888\tutter\t[他] ①（叫び声など）を発する [形] ②まったくの
+1889\texclaim\t[自] （驚き，怒りなどで）叫ぶ
+1890\tlament\t[他] ～を深く悲しむ，嘆く
+1891\tshed\t[他] ①（涙など）を流す ②（光）を当てる ③～を取り除く ④（ヘビなどが）（皮）を脱ぐ，（木が葉っぱ）を落とす
+1892\tresent\t[他] ～に憤慨する
+1893\tdread\t[他] ①～を恐れる [名] ②恐怖
+1894\tstartle\t[他] ～を驚かせる
+1895\tthrill\t[他] ①～をぞくぞく［わくわく］させる [名] ②スリル
+1896\thumiliate\t[他] ～に恥をかかせる
+1897\tblush\t[自] ①赤面する [名] ②赤面
+1898\tfrown\t[自] ①（on ～）（～に）眉をひそめる [名] ②しかめっ面
+1899\tdismay\t[他] ①～を狼狽させる [名] ②狼狽
+1900\tbewilder\t[他] （通例，受け身）～を当惑させる
+1901\tperplex\t[他] ～を困惑させる
+1902\tdisgust\t[他] ①～に嫌悪を抱かせる [名] ②嫌悪
+1903\tdespise\t[他] ～を軽蔑する
+1904\tfurious\t[形] 激怒した
+1905\tintimate\t[形] ①親密な ②（知識などが）深い
+1906\tintriguing\t[形] 興味深い
+1907\tconscience\t[名] 良心
+1908\tself-esteem\t[名] 自尊心
+1909\tmercy\t[名] ①慈悲，情け ② 幸運
+1910\taspiration\t[名] 熱望
+1911\tgrief\t[名] （人の死などに対する）深い悲しみ
+1912\tdistress\t[名] ①苦しみ，苦難 [他] ②～を苦しめる
+1913\tapprehension\t[名] ①不安 ②逮捕
+1914\tmelancholy\t[名] 憂うつ，ふさぎ込み
+1915\tcontempt\t[名] 軽蔑
+1916\tinsult\t[名] ①侮辱 [他] ②～を侮辱する
+1917\tnuisance\t[名] 迷惑（になるもの）
+1918\tmenace\t[名] （to ～）（～にとっての）厄介なもの［人］，脅威
+1919\tverge\t[名] ①瀬戸際，寸前 ② 道路べり，（場所の）縁
+1920\tincentive\t[名] 励み
+1921\toutcome\t[名] 結果
+1922\tthorough\t[形] 完全な，徹底的な
+1923\tadequate\t[形] 十分な，適切な
+1924\toverall\t[形] ①全体的な，全面的な [副] ②全体的に，全面的に
+1925\tultimate\t[形] 究極の，最終の
+1926\tgenuine\t[形] ①（感情が）心からの ②（絵画などが）本物の
+1927\tradical\t[形] ①根本的な，抜本的な ②過激な
+1928\tdrastic\t[形] 抜本的な，思い切った
+1929\ttrivial\t[形] ささいな
+1930\tvirtually\t[副] 事実上
+1931\tabruptly\t[副] 不意に，突然
+1932\tdeliberately\t[副] ①故意に ②慎重に
+1933\thence\t[副] だから，それゆえに
+1934\tnamely\t[副] すなわち
+1935\twhereas\t[接] ～だが一方`;
+
+        function parseLEAPDatabase() {
+            const lines = RAW_TEXT_DATA.trim().split('\n');
+            return lines.map(line => {
+                const [idStr, word, fullDef] = line.split('\t');
+                const id = parseInt(idStr, 10);
+                
+                let part = 1;
+                if (id > 400) part = 2;
+                if (id > 1000) part = 3;
+                if (id > 1400) part = 4;
+
+                let pos = "";
+                let meaning = fullDef || "";
+                if (fullDef && fullDef.startsWith('[')) {
+                    const match = fullDef.match(/^\[(.*?)\]\s*(.*)$/);
+                    if (match) {
+                        pos = match[1];
+                        meaning = match[2];
+                    }
+                }
+
+                return {
+                    id: id,
+                    word: word ? word.trim() : "",
+                    pos: pos,
+                    meaning: meaning,
+                    part: part,
+                    phonetic: `/ ${word} /`,
+                    example: `${word} (${meaning})`
+                };
+            });
+        }
+
+        const LEAP_FULL_DATABASE = parseLEAPDatabase();
+
+        // --- APP STATE & LOCAL STORAGE ---
+        let userState = {
+            words: {}
+        };
+
+        let currentQuiz = {
+            questions: [],
+            currentIndex: 0,
+            score: 0,
+            mode: 'ja-to-en',
+            userAnswers: [],
+            isFlipped: false
+        };
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            loadUserData();
+            renderDashboard();
+            filterWordList();
+        };
+
+        function loadUserData() {
+            const saved = localStorage.getItem('leap_2020_user_data_v2');
+            if (saved) {
+                try {
+                    userState = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Failed to load saved state", e);
+                }
+            }
+        }
+
+        function saveUserData() {
+            localStorage.setItem('leap_2020_user_data_v2', JSON.stringify(userState));
+        }
+
+        function getWordState(id) {
+            return userState.words[id] || { status: 'unlearned', bookmarked: false };
+        }
+
+        function updateWordStatus(id, status) {
+            if (!userState.words[id]) userState.words[id] = { status: 'unlearned', bookmarked: false };
+            userState.words[id].status = status;
+            saveUserData();
+            renderDashboard();
+        }
+
+        function toggleWordBookmark(id) {
+            if (!userState.words[id]) userState.words[id] = { status: 'unlearned', bookmarked: false };
+            userState.words[id].bookmarked = !userState.words[id].bookmarked;
+            saveUserData();
+            renderDashboard();
+            return userState.words[id].bookmarked;
+        }
+
+        function confirmResetData() {
+            if (confirm("全ての学習ステータスと⭐ブックマークを初期化しますか？")) {
+                userState = { words: {} };
+                saveUserData();
+                renderDashboard();
+                filterWordList();
+                alert("学習履歴をクリアしました。");
+            }
+        }
+
+        // --- TAB SWITCHING ---
+        function switchTab(tabId) {
+            const tabs = ['quiz-setup', 'quiz-active', 'flashcard-active', 'quiz-result', 'word-list', 'dashboard'];
+            tabs.forEach(id => {
+                const el = document.getElementById(`tab-${id}`);
+                if (el) el.classList.add('hidden');
+                
+                const navEl = document.getElementById(`nav-${id}`);
+                if (navEl) {
+                    navEl.classList.remove('bg-blue-600', 'text-white');
+                    navEl.classList.add('text-slate-300');
+                }
+            });
+
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if (targetNav) {
+                targetNav.classList.add('bg-blue-600', 'text-white');
+                targetNav.classList.remove('text-slate-300');
+            }
+
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'word-list') filterWordList();
+        }
+
+        // --- QUIZ SETUP LOGIC ---
+        function setRangePreset(start, end) {
+            document.getElementById('range-start').value = start;
+            document.getElementById('range-end').value = end;
+            updateRangeIndicator();
+        }
+
+        function validateRangeInputs() {
+            let start = parseInt(document.getElementById('range-start').value) || 1;
+            let end = parseInt(document.getElementById('range-end').value) || 1935;
+            if (start < 1) start = 1;
+            if (end > 1935) end = 1935;
+            if (start > end) start = end;
+
+            document.getElementById('range-start').value = start;
+            document.getElementById('range-end').value = end;
+            updateRangeIndicator();
+        }
+
+        function updateRangeIndicator() {
+            const start = document.getElementById('range-start').value;
+            const end = document.getElementById('range-end').value;
+            document.getElementById('range-indicator').textContent = `No.${start} ～ No.${end}`;
+        }
+
+        function startQuiz(e) {
+            e.preventDefault();
+
+            const mode = document.querySelector('input[name="quizMode"]:checked').value;
+            const start = parseInt(document.getElementById('range-start').value);
+            const end = parseInt(document.getElementById('range-end').value);
+            const statusFilter = document.getElementById('status-filter').value;
+            const countVal = document.getElementById('question-count').value;
+            const order = document.getElementById('question-order').value;
+
+            let pool = LEAP_FULL_DATABASE.filter(w => w.id >= start && w.id <= end);
+
+            // Filter by Status / Bookmark
+            if (statusFilter !== 'all') {
+                pool = pool.filter(w => {
+                    const st = getWordState(w.id);
+                    if (statusFilter === 'bookmarked') return st.bookmarked;
+                    return st.status === statusFilter;
+                });
+            }
+
+            if (pool.length === 0) {
+                alert('条件に一致する単語が見つかりませんでした。出題範囲やフィルター条件を変更してください。');
+                return;
+            }
+
+            // Order
+            if (order === 'shuffle') {
+                pool = pool.sort(() => Math.random() - 0.5);
+            } else {
+                pool = pool.sort((a, b) => a.id - b.id);
+            }
+
+            // Limit Count
+            let limit = pool.length;
+            if (countVal !== 'all') {
+                limit = Math.min(parseInt(countVal), pool.length);
+            }
+            pool = pool.slice(0, limit);
+
+            currentQuiz = {
+                questions: pool,
+                currentIndex: 0,
+                score: 0,
+                mode: mode,
+                userAnswers: [],
+                isFlipped: false
+            };
+
+            if (mode === 'flashcard') {
+                switchTab('flashcard-active');
+                renderFlashcard();
+            } else {
+                switchTab('quiz-active');
+                renderQuizQuestion();
+            }
+        }
+
+        // --- RENDER MULTIPLE CHOICE & TYPING QUIZ ---
+        function renderQuizQuestion() {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            const total = currentQuiz.questions.length;
+
+            document.getElementById('quiz-feedback-box').classList.add('hidden');
+            document.getElementById('quiz-progress-text').textContent = `${currentQuiz.currentIndex + 1} / ${total}`;
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuiz.currentIndex + 1) / total) * 100}%`;
+
+            document.getElementById('quiz-word-no').textContent = `No. ${q.id}`;
+            document.getElementById('quiz-word-part').textContent = `Part ${q.part}`;
+            document.getElementById('quiz-word-pos').textContent = q.pos;
+            document.getElementById('quiz-phonetic').textContent = q.phonetic;
+
+            // Bookmark Star State
+            const isBookmarked = getWordState(q.id).bookmarked;
+            const starBtn = document.getElementById('quiz-bookmark-btn');
+            starBtn.className = `text-2xl transition ${isBookmarked ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`;
+
+            const answersContainer = document.getElementById('quiz-answers-container');
+            answersContainer.innerHTML = '';
+
+            if (currentQuiz.mode === 'ja-to-en') {
+                document.getElementById('quiz-question-title').textContent = q.meaning;
+                document.getElementById('audio-btn').classList.add('hidden');
+                renderChoiceButtons(q, 'word');
+            } else if (currentQuiz.mode === 'en-to-ja') {
+                document.getElementById('quiz-question-title').textContent = q.word;
+                document.getElementById('audio-btn').classList.remove('hidden');
+                renderChoiceButtons(q, 'meaning');
+            } else if (currentQuiz.mode === 'typing') {
+                document.getElementById('quiz-question-title').textContent = q.meaning;
+                document.getElementById('audio-btn').classList.add('hidden');
+                renderTypingInput(q);
+            }
+        }
+
+        function renderChoiceButtons(correctWord, displayField) {
+            const container = document.getElementById('quiz-answers-container');
+            
+            let options = [correctWord];
+            const others = LEAP_FULL_DATABASE.filter(w => w.id !== correctWord.id).sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < 3 && i < others.length; i++) {
+                options.push(others[i]);
+            }
+            options = options.sort(() => Math.random() - 0.5);
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 text-left border-2 border-slate-700/80 hover:border-blue-500 rounded-xl font-bold text-slate-200 bg-slate-900/60 transition flex items-center justify-between group";
+                btn.onclick = () => handleAnswerSelect(opt.id === correctWord.id, btn);
+                btn.innerHTML = `
+                    <span>${opt[displayField]}</span>
+                    <i class="fa-regular fa-circle text-slate-600 group-hover:text-blue-400 text-lg"></i>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function renderTypingInput(correctWord) {
+            const container = document.getElementById('quiz-answers-container');
+            container.innerHTML = `
+                <form onsubmit="handleTypingSubmit(event, '${correctWord.word}')" class="space-y-3">
+                    <input type="text" id="typing-input" placeholder="英単語を入力..." class="w-full p-4 bg-slate-900 border-2 border-slate-700 rounded-xl font-bold text-lg text-white focus:border-blue-500 focus:outline-none">
+                    <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition">回答を判定</button>
+                </form>
+            `;
+            setTimeout(() => {
+                const input = document.getElementById('typing-input');
+                if (input) input.focus();
+            }, 50);
+        }
+
+        function handleAnswerSelect(isCorrect, btnElement) {
+            const btns = document.querySelectorAll('#quiz-answers-container button');
+            btns.forEach(b => b.onclick = null);
+            showFeedback(isCorrect);
+        }
+
+        function handleTypingSubmit(e, correctWord) {
+            e.preventDefault();
+            const inputVal = document.getElementById('typing-input').value.trim().toLowerCase();
+            const isCorrect = inputVal === correctWord.toLowerCase();
+            showFeedback(isCorrect);
+        }
+
+        function showFeedback(isCorrect) {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            currentQuiz.userAnswers.push({ word: q, isCorrect });
+
+            if (isCorrect) {
+                currentQuiz.score++;
+                updateWordStatus(q.id, 'learned');
+            } else {
+                updateWordStatus(q.id, 'review');
+            }
+
+            speakWord(q.word);
+
+            const feedbackBox = document.getElementById('quiz-feedback-box');
+            const banner = document.getElementById('feedback-banner');
+            const statusText = document.getElementById('feedback-status-text');
+            const icon = document.getElementById('feedback-icon');
+
+            feedbackBox.classList.remove('hidden');
+            if (isCorrect) {
+                banner.className = "p-3.5 rounded-xl flex items-center justify-between text-sm font-bold bg-emerald-950/80 border border-emerald-700/60 text-emerald-300";
+                statusText.textContent = "正解！ Excellent!";
+                icon.className = "fa-solid fa-circle-check text-xl text-emerald-400";
+            } else {
+                banner.className = "p-3.5 rounded-xl flex items-center justify-between text-sm font-bold bg-rose-950/80 border border-rose-700/60 text-rose-300";
+                statusText.textContent = `不正解... 正解は 「${q.word}」`;
+                icon.className = "fa-solid fa-circle-xmark text-xl text-rose-400";
+            }
+
+            document.getElementById('feedback-meaning').textContent = `${q.word} : ${q.meaning}`;
+            document.getElementById('feedback-phrase').textContent = q.example;
+        }
+
+        function toggleQuizBookmark() {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            const newState = toggleWordBookmark(q.id);
+            const starBtn = document.getElementById('quiz-bookmark-btn');
+            starBtn.className = `text-2xl transition ${newState ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`;
+        }
+
+        function setQuizWordStatus(status) {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            updateWordStatus(q.id, status);
+            alert(`「${q.word}」のステータスを「${status === 'learned' ? '習得済み' : '要復習'}」に設定しました。`);
+        }
+
+        function nextQuestion() {
+            currentQuiz.currentIndex++;
+            if (currentQuiz.currentIndex < currentQuiz.questions.length) {
+                renderQuizQuestion();
+            } else {
+                renderQuizResult();
+            }
+        }
+
+        // --- FLASHCARD LOGIC ---
+        function renderFlashcard() {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            const total = currentQuiz.questions.length;
+
+            currentQuiz.isFlipped = false;
+            const inner = document.getElementById('flashcard-inner');
+            inner.classList.remove('rotate-y-180');
+
+            document.getElementById('card-progress-text').textContent = `${currentQuiz.currentIndex + 1} / ${total}`;
+
+            // Front
+            document.getElementById('card-no-front').textContent = `No. ${q.id}`;
+            document.getElementById('card-word-front').textContent = q.word;
+            document.getElementById('card-phonetic-front').textContent = q.phonetic;
+
+            const isBookmarked = getWordState(q.id).bookmarked;
+            document.getElementById('card-star-front').className = `text-2xl ${isBookmarked ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`;
+
+            // Back
+            document.getElementById('card-pos-back').textContent = `${q.pos} (Part ${q.part})`;
+            document.getElementById('card-meaning-back').textContent = q.meaning;
+            document.getElementById('card-phrase-back').textContent = q.example;
+
+            speakWord(q.word);
+        }
+
+        function flipCard() {
+            currentQuiz.isFlipped = !currentQuiz.isFlipped;
+            const inner = document.getElementById('flashcard-inner');
+            if (currentQuiz.isFlipped) {
+                inner.classList.add('rotate-y-180');
+            } else {
+                inner.classList.remove('rotate-y-180');
+            }
+        }
+
+        function toggleFlashcardBookmark() {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            const newState = toggleWordBookmark(q.id);
+            document.getElementById('card-star-front').className = `text-2xl ${newState ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`;
+        }
+
+        function speakCurrentCardWord() {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            if (q) speakWord(q.word);
+        }
+
+        function handleFlashcardRating(status) {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            updateWordStatus(q.id, status);
+
+            currentQuiz.currentIndex++;
+            if (currentQuiz.currentIndex < currentQuiz.questions.length) {
+                renderFlashcard();
+            } else {
+                renderQuizResult();
+            }
+        }
+
+        function confirmExitQuiz() {
+            if (confirm('学習を終了して設定画面へ戻りますか？')) {
+                switchTab('quiz-setup');
+            }
+        }
+
+        // --- RENDER RESULTS ---
+        function renderQuizResult() {
+            switchTab('quiz-result');
+            const total = currentQuiz.questions.length;
+            const score = currentQuiz.score;
+            const pct = Math.round((score / total) * 100);
+
+            document.getElementById('result-score').textContent = `${score} / ${total}`;
+            document.getElementById('result-accuracy').textContent = `${pct}%`;
+
+            const listContainer = document.getElementById('result-word-list');
+            listContainer.innerHTML = '';
+
+            currentQuiz.userAnswers.forEach(ans => {
+                const w = ans.word;
+                const isBookmarked = getWordState(w.id).bookmarked;
+
+                const item = document.createElement('div');
+                item.className = `p-3.5 rounded-xl border flex items-center justify-between ${ans.isCorrect ? 'bg-emerald-950/40 border-emerald-800/50' : 'bg-rose-950/40 border-rose-800/50'}`;
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="${ans.isCorrect ? 'fa-solid fa-check text-emerald-400' : 'fa-solid fa-xmark text-rose-400'} font-bold"></i>
+                        <div>
+                            <span class="font-bold text-white">${w.word}</span>
+                            <span class="text-xs text-slate-400 ml-2">${w.meaning}</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleResultBookmark(${w.id}, this)" class="text-lg ${isBookmarked ? 'text-amber-400' : 'text-slate-600'} hover:text-amber-400 transition">
+                        <i class="fa-solid fa-star"></i>
+                    </button>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function toggleResultBookmark(id, btnElement) {
+            const newState = toggleWordBookmark(id);
+            btnElement.className = `text-lg ${newState ? 'text-amber-400' : 'text-slate-600'} hover:text-amber-400 transition`;
+        }
+
+        // --- WORD LIST & SEARCH LOGIC ---
+        function filterWordList() {
+            const query = document.getElementById('list-search-input').value.toLowerCase().trim();
+            const partFilter = document.getElementById('list-part-filter').value;
+            const statusFilter = document.getElementById('list-status-filter').value;
+
+            let filtered = LEAP_FULL_DATABASE.filter(w => {
+                const matchesSearch = w.word.toLowerCase().includes(query) || 
+                                     w.meaning.includes(query) || 
+                                     w.id.toString().includes(query);
+
+                const matchesPart = partFilter === 'all' || w.part.toString() === partFilter;
+
+                const st = getWordState(w.id);
+                let matchesStatus = true;
+                if (statusFilter === 'bookmarked') matchesStatus = st.bookmarked;
+                else if (statusFilter !== 'all') matchesStatus = st.status === statusFilter;
+
+                return matchesSearch && matchesPart && matchesStatus;
+            });
+
+            document.getElementById('list-count-label').textContent = `該当 ${filtered.length} 件`;
+
+            const grid = document.getElementById('word-cards-grid');
+            grid.innerHTML = '';
+
+            filtered.forEach(w => {
+                const st = getWordState(w.id);
+                const card = document.createElement('div');
+                card.className = "bg-slate-800/90 p-4 rounded-xl border border-slate-700 shadow-md flex flex-col justify-between space-y-3 backdrop-blur-md";
+                
+                let statusBadge = `<span class="px-2 py-0.5 bg-slate-700 text-slate-300 rounded text-xs font-semibold">未習得</span>`;
+                if (st.status === 'learned') statusBadge = `<span class="px-2 py-0.5 bg-emerald-950/80 text-emerald-300 border border-emerald-700/50 rounded text-xs font-semibold">習得済み</span>`;
+                if (st.status === 'review') statusBadge = `<span class="px-2 py-0.5 bg-amber-950/80 text-amber-300 border border-amber-700/50 rounded text-xs font-semibold">要復習</span>`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-slate-400">No.${w.id}</span>
+                                <span class="text-xs bg-blue-900/60 text-blue-300 border border-blue-700/50 px-1.5 py-0.5 rounded font-semibold">Part ${w.part}</span>
+                                <span class="text-xs text-slate-400 font-medium">${w.pos}</span>
+                            </div>
+                            <button onclick="toggleCardBookmark(${w.id}, this)" class="text-lg ${st.bookmarked ? 'text-amber-400' : 'text-slate-600'} hover:text-amber-400 transition">
+                                <i class="fa-solid fa-star"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="text-xl font-bold text-white">${w.word}</h4>
+                            <button onclick="speakWord('${w.word}')" class="text-slate-400 hover:text-blue-400 transition text-sm">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono mb-2">${w.phonetic}</p>
+                        <p class="text-sm font-bold text-amber-300">${w.meaning}</p>
+                        <p class="text-xs text-slate-300 italic mt-1 bg-slate-900/60 p-2 rounded border border-slate-800">${w.example}</p>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-700/80 flex items-center justify-between">
+                        ${statusBadge}
+                        <div class="flex gap-1">
+                            <button onclick="updateWordStatusFromList(${w.id}, 'review')" class="px-2.5 py-1 bg-amber-950/60 text-amber-300 hover:bg-amber-900/80 border border-amber-700/60 text-xs font-medium rounded transition">要復習</button>
+                            <button onclick="updateWordStatusFromList(${w.id}, 'learned')" class="px-2.5 py-1 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/80 border border-emerald-700/60 text-xs font-medium rounded transition">習得済</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleCardBookmark(id, btnElement) {
+            const newState = toggleWordBookmark(id);
+            btnElement.className = `text-lg ${newState ? 'text-amber-400' : 'text-slate-600'} hover:text-amber-400 transition`;
+        }
+
+        function updateWordStatusFromList(id, status) {
+            updateWordStatus(id, status);
+            filterWordList();
+        }
+
+        // --- DASHBOARD RENDER ---
+        function renderDashboard() {
+            const allWords = LEAP_FULL_DATABASE;
+            const total = 1935;
+            let learnedCount = 0;
+            let reviewCount = 0;
+            let bookmarkCount = 0;
+
+            allWords.forEach(w => {
+                const st = getWordState(w.id);
+                if (st.status === 'learned') learnedCount++;
+                if (st.status === 'review') reviewCount++;
+                if (st.bookmarked) bookmarkCount++;
+            });
+
+            document.getElementById('dash-learned-count').textContent = learnedCount;
+            document.getElementById('dash-learned-pct').textContent = `(${Math.round((learnedCount / total) * 100)}%)`;
+            document.getElementById('dash-review-count').textContent = reviewCount;
+            document.getElementById('dash-bookmark-count').textContent = bookmarkCount;
+
+            const partsConfig = [
+                { num: 1, label: "Part 1: Active Basic", start: 1, end: 400 },
+                { num: 2, label: "Part 2: Active Advanced", start: 401, end: 1000 },
+                { num: 3, label: "Part 3: Passive Standard", start: 1001, end: 1400 },
+                { num: 4, label: "Part 4: Passive Advanced", start: 1401, end: 1935 }
+            ];
+
+            const partContainer = document.getElementById('part-progress-container');
+            partContainer.innerHTML = '';
+
+            partsConfig.forEach(p => {
+                const partWords = allWords.filter(w => w.id >= p.start && w.id <= p.end);
+                const partLearned = partWords.filter(w => getWordState(w.id).status === 'learned').length;
+                const totalInPart = (p.end - p.start + 1);
+                const pct = Math.round((partLearned / totalInPart) * 100);
+
+                const div = document.createElement('div');
+                div.className = "space-y-1.5";
+                div.innerHTML = `
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span class="text-slate-300">${p.label} <span class="text-slate-500 font-normal">(No.${p.start}-${p.end})</span></span>
+                        <span class="text-blue-400">${partLearned} / ${totalInPart} 語 習得 (${pct}%)</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden flex border border-slate-700/80">
+                        <div class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                partContainer.appendChild(div);
+            });
+        }
+
+        // --- AUDIO PLAYBACK ---
+        function speakCurrentWord() {
+            const q = currentQuiz.questions[currentQuiz.currentIndex];
+            if (q) speakWord(q.word);
+        }
+
+        function speakWord(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+</body>
+</html>
